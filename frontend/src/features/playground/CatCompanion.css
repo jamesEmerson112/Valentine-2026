@@ -1,0 +1,25 @@
+.cat-companion {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  will-change: transform;
+  transition: filter 0.3s ease;
+  filter: drop-shadow(0 4px 8px rgba(196, 69, 105, 0.2));
+}
+
+.cat-companion img {
+  display: block;
+}
+
+.cat-idle img {
+  animation: catBreathe 2s ease-in-out infinite;
+}
+
+@keyframes catBreathe {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-3px) scale(1.02);
+  }
+}

@@ -1,0 +1,152 @@
+.drawing-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(108, 43, 62, 0.4);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  animation: drawOverlayIn 0.3s ease;
+}
+
+@keyframes drawOverlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.drawing-panel {
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(196, 69, 105, 0.3);
+}
+
+.drawing-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.drawing-title {
+  font-family: 'Georgia', serif;
+  font-size: 1.2rem;
+  color: var(--pink-dark);
+}
+
+.drawing-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--pink-dark);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.drawing-close:hover {
+  background: var(--pink-lightest);
+}
+
+.drawing-canvas {
+  width: 100%;
+  height: 300px;
+  border: 2px dashed var(--pink-light);
+  border-radius: 12px;
+  cursor: crosshair;
+  touch-action: none;
+  background: white;
+}
+
+.drawing-tools {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.drawing-colors {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.color-swatch.active {
+  border-color: var(--pink-dark);
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--pink-dark);
+}
+
+.drawing-size {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--pink-dark);
+}
+
+.drawing-size input[type="range"] {
+  flex: 1;
+  accent-color: var(--pink-primary);
+}
+
+.drawing-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.draw-action-btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1.5px solid var(--pink-light);
+  background: white;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--pink-dark);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.draw-action-btn:hover:not(:disabled) {
+  background: var(--pink-lightest);
+  border-color: var(--pink-medium);
+}
+
+.draw-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.draw-action-btn.primary {
+  background: linear-gradient(135deg, var(--pink-primary), var(--pink-deep));
+  color: white;
+  border-color: transparent;
+  box-shadow: 0 2px 12px rgba(255, 107, 129, 0.35);
+}
+
+.draw-action-btn.primary:hover {
+  background: linear-gradient(135deg, var(--pink-deep), var(--pink-dark));
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.45);
+}

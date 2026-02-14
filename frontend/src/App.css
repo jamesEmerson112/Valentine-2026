@@ -1,111 +1,26 @@
-.valentine-container {
+.app-shell {
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #ff6b81 0%, #ee5a6f 30%, #c44569 60%, #6c2b3e 100%);
-  overflow: hidden;
 }
 
-/* Floating hearts background */
-.hearts-bg {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.floating-heart {
-  position: absolute;
-  bottom: -30px;
-  color: #ff4d6d;
-  animation: floatUp linear infinite;
-}
-
-@keyframes floatUp {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.6;
-  }
-  90% {
-    opacity: 0.6;
-  }
-  100% {
-    transform: translateY(-100vh) rotate(360deg);
-    opacity: 0;
-  }
-}
-
-/* Card */
-.card {
+.app-main {
   position: relative;
   z-index: 1;
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 20px;
-  padding: 3rem 2.5rem;
-  max-width: 480px;
-  width: 90%;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 0 0 40px rgba(255, 77, 109, 0.15);
+  min-height: 100vh;
 }
 
-.title {
-  font-family: 'Georgia', serif;
-  font-size: 2rem;
-  color: #c44569;
-  margin: 0 0 0.5rem;
+/* Route transition */
+.app-main > * {
+  animation: routeFadeIn 0.35s ease;
 }
 
-.heart-divider {
-  font-size: 1.5rem;
-  color: #ff4d6d;
-  margin: 0.5rem 0 1.5rem;
-}
-
-.message {
-  font-family: 'Georgia', serif;
-  font-size: 1.25rem;
-  color: #333;
-  line-height: 1.6;
-  font-style: italic;
-  margin: 0 0 0.75rem;
-  min-height: 3rem;
-}
-
-.from {
-  font-size: 1rem;
-  color: #c44569;
-  font-weight: 600;
-  margin: 0 0 2rem;
-}
-
-.btn {
-  background: linear-gradient(135deg, #ff6b81, #c44569);
-  color: white;
-  border: none;
-  border-radius: 50px;
-  padding: 0.85rem 2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 15px rgba(196, 69, 105, 0.4);
-}
-
-.btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(196, 69, 105, 0.5);
-}
-
-.btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+@keyframes routeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

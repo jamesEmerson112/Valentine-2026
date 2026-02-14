@@ -1,0 +1,94 @@
+import type { Sprite } from '../types'
+
+const SPEED = 0.06 // pixels per ms
+
+/**
+ * Update sprite position based on its behavior. Mutates sprite in place.
+ */
+export function updateSprite(sprite: Sprite, dt: number, bounds: { width: number; height: number }) {
+  sprite.timer += dt
+
+  switch (sprite.behavior) {
+    case 'wander':
+      updateWander(sprite, dt, bounds)
+      break
+    case 'bounce':
+      updateBounce(sprite, dt, bounds)
+      break
+    case 'float':
+      updateFloat(sprite, dt, bounds)
+      break
+  }
+}
+
+function updateWander(sprite: Sprite, dt: number, bounds: { width: number; height: number }) {
+  // Change direction every 2-4 seconds
+  if (sprite.timer > 2000 + Math.random() * 2000) {
+    sprite.angle = Math.random() * Math.PI * 2
+    sprite.timer = 0
+  }
+
+  sprite.vx = Math.cos(sprite.angle) * SPEED
+  sprite.vy = Math.sin(sprite.angle) * SPEED
+  sprite.x += sprite.vx * dt
+  sprite.y += sprite.vy * dt
+  sprite.flipX = sprite.vx < 0
+
+  // Bounce off walls
+  if (sprite.x < 0) { sprite.x = 0; sprite.angle = Math.PI - sprite.angle }
+  if (sprite.x + sprite.width > bounds.width) { sprite.x = bounds.width - sprite.width; sprite.angle = Math.PI - sprite.angle }
+  if (sprite.y < 0) { sprite.y = 0; sprite.angle = -sprite.angle }
+  if (sprite.y + sprite.height > bounds.height) { sprite.y = bounds.height - sprite.height; sprite.angle = -sprite.angle }
+}
+
+function updateBounce(sprite: Sprite, dt: number, bounds: { width: number; height: number }) {
+  sprite.x += sprite.vx * dt
+  sprite.y += sprite.vy * dt
+  sprite.flipX = sprite.vx < 0
+
+  if (sprite.x < 0 || sprite.x + sprite.width > bounds.width) {
+    sprite.vx *= -1
+    sprite.x = Math.max(0, Math.min(sprite.x, bounds.width - sprite.width))
+  }
+  if (sprite.y < 0 || sprite.y + sprite.height > bounds.height) {
+    sprite.vy *= -1
+    sprite.y = Math.max(0, Math.min(sprite.y, bounds.height - sprite.height))
+  }
+}
+
+function updateFloat(sprite: Sprite, dt: number, bounds: { width: number; height: number }) {
+  // Upward drift with sine wave horizontal movement
+  sprite.y -= 0.03 * dt
+  sprite.x += Math.sin(sprite.timer * 0.002) * 0.3
+
+  // Wrap around when going off top
+  if (sprite.y + sprite.height < 0) {
+    sprite.y = bounds.height
+    sprite.x = Math.random() * (bounds.width - sprite.width)
+  }
+  // Keep in horizontal bounds
+  if (sprite.x < 0) sprite.x = 0
+  if (sprite.x + sprite.width > bounds.width) sprite.x = bounds.width - sprite.width
+}
+
+/**
+ * Pick a random behavior for a new sprite.
+ */
+export function randomBehavior(): Sprite['behavior'] {
+  const behaviors: Sprite['behavior'][] = ['wander', 'bounce', 'float']
+  return behaviors[Math.floor(Math.random() * behaviors.length)]
+}
+
+/**
+ * Create initial velocity for a sprite based on behavior.
+ */
+export function initialVelocity(behavior: Sprite['behavior']): { vx: number; vy: number } {
+  switch (behavior) {
+    case 'bounce':
+      return { vx: (Math.random() > 0.5 ? 1 : -1) * SPEED, vy: (Math.random() > 0.5 ? 1 : -1) * SPEED }
+    case 'wander':
+      return { vx: 0, vy: 0 }
+    case 'float':
+      return { vx: 0, vy: -0.03 }
+  }
+}

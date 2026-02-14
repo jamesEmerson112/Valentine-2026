@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <!-- Kawaii pink cat companion -->
+  <!-- Tail -->
+  <path d="M62 58 Q75 50 70 38" fill="none" stroke="#ff8fa3" stroke-width="3.5" stroke-linecap="round"/>
+  <!-- Body -->
+  <ellipse cx="40" cy="58" rx="22" ry="16" fill="#ffb3c1"/>
+  <!-- Head -->
+  <circle cx="40" cy="35" r="20" fill="#ffb3c1"/>
+  <!-- Left ear -->
+  <polygon points="24,20 18,4 34,16" fill="#ffb3c1"/>
+  <polygon points="26,19 21,8 32,17" fill="#ff8fa3"/>
+  <!-- Right ear -->
+  <polygon points="56,20 62,4 46,16" fill="#ffb3c1"/>
+  <polygon points="54,19 59,8 48,17" fill="#ff8fa3"/>
+  <!-- Eyes -->
+  <circle cx="33" cy="33" r="3" fill="#333"/>
+  <circle cx="47" cy="33" r="3" fill="#333"/>
+  <!-- Eye shine -->
+  <circle cx="34" cy="32" r="1" fill="white"/>
+  <circle cx="48" cy="32" r="1" fill="white"/>
+  <!-- Nose -->
+  <ellipse cx="40" cy="39" rx="2" ry="1.5" fill="#ff6b81"/>
+  <!-- Mouth -->
+  <path d="M37 41 Q40 44 43 41" fill="none" stroke="#333" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Whiskers -->
+  <line x1="18" y1="36" x2="30" y2="38" stroke="#ddd" stroke-width="1"/>
+  <line x1="18" y1="40" x2="30" y2="40" stroke="#ddd" stroke-width="1"/>
+  <line x1="50" y1="38" x2="62" y2="36" stroke="#ddd" stroke-width="1"/>
+  <line x1="50" y1="40" x2="62" y2="40" stroke="#ddd" stroke-width="1"/>
+  <!-- Blush -->
+  <ellipse cx="28" cy="40" rx="4" ry="2.5" fill="#ff8fa3" opacity="0.4"/>
+  <ellipse cx="52" cy="40" rx="4" ry="2.5" fill="#ff8fa3" opacity="0.4"/>
+  <!-- Front paws -->
+  <ellipse cx="30" cy="70" rx="7" ry="5" fill="#ffb3c1"/>
+  <ellipse cx="50" cy="70" rx="7" ry="5" fill="#ffb3c1"/>
+</svg>

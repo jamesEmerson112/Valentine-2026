@@ -1,3 +1,20 @@
+:root {
+  --pink-lightest: #fff0f3;
+  --pink-light: #ffccd5;
+  --pink-soft: #ffb3c1;
+  --pink-medium: #ff8fa3;
+  --pink-primary: #ff6b81;
+  --pink-deep: #ee5a6f;
+  --pink-dark: #c44569;
+  --pink-darkest: #6c2b3e;
+  --pink-coral: #ff7f8a;
+  --pink-blush: #ffc2d1;
+  --pink-rose: #e8496d;
+  --pastel-pink: #ffd6e0;
+  --pastel-lavender: #e8d5f5;
+  --pastel-peach: #ffe5d9;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -8,4 +25,6 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #fff0f3 0%, #ffccd5 50%, #ffb3c1 100%);
+  min-height: 100vh;
 }
