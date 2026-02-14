@@ -193,6 +193,31 @@
   letter-spacing: 0.5px;
 }
 
+.mute-btn {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 107, 129, 0.2);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--pink-dark);
+  transition: transform 0.15s, background 0.15s;
+  padding: 0;
+}
+
+.mute-btn:hover {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.08);
+}
+
+.mute-btn:active {
+  transform: scale(0.95);
+}
+
 .game-wave {
   background: rgba(255, 255, 255, 0.65);
   backdrop-filter: blur(8px);

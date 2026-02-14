@@ -79,6 +79,13 @@ export interface AgentAssignment {
 
 export type TDGamePhase = 'idle' | 'playing' | 'victory' | 'defeat'
 
+export interface GameEvent {
+  type: 'rat_caught' | 'rat_spawned' | 'bloom_stage' | 'flower_hit' | 'victory' | 'defeat'
+  x?: number
+  y?: number
+  stage?: number
+}
+
 export interface TDGameState {
   phase: TDGamePhase
   elapsedTime: number
@@ -95,4 +102,5 @@ export interface TDGameState {
   grid: number[][] | null
   gridCols: number
   gridRows: number
+  events: GameEvent[]
 }

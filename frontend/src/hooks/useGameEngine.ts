@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react'
-import type { TDGameState, Flower, Rat, SpawnEdge, Sprite } from '../types'
+import type { TDGameState, Flower, Rat, SpawnEdge, Sprite, GameEvent } from '../types'
 import {
   GAME_DURATION_MS,
   TIME_SCALE_DEBUG,
@@ -14,7 +14,20 @@ import {
 } from '../utils/gameConfig'
 import { generateObstacles } from '../utils/obstacleGenerator'
 import { buildGrid } from '../utils/grid'
-import { updateAgents, isAgent } from '../utils/agentAI'
+import { updateAgents, isAgent, resetAgentStates } from '../utils/agentAI'
+
+// Track previous bloom stages per flower to detect stage crossings
+const prevBloomStages = new Map<number, number>()
+
+function bloomStageIndex(progress: number): number {
+  // stages at 0.2, 0.4, 0.6, 0.8, 1.0
+  if (progress >= 1.0) return 5
+  if (progress >= 0.8) return 4
+  if (progress >= 0.6) return 3
+  if (progress >= 0.4) return 2
+  if (progress >= 0.2) return 1
+  return 0
+}
 
 function createInitialState(): TDGameState {
   return {
@@ -33,6 +46,7 @@ function createInitialState(): TDGameState {
     grid: null,
     gridCols: 0,
     gridRows: 0,
+    events: [],
   }
 }
 
@@ -74,6 +88,7 @@ export function useGameEngine() {
     state.ratsSpawnedThisWave = 0
     state.nextRatSpawnTime = 0
     state.ratIdCounter = 0
+    state.events = []
 
     // Generate obstacles and navigation grid
     state.obstacles = generateObstacles(bounds, { cx, cy, w, h }, flowers)
@@ -83,12 +98,18 @@ export function useGameEngine() {
     state.gridCols = gridData.cols
     state.gridRows = gridData.rows
     state.agentAssignments = []
+
+    // Reset agent AI state
+    resetAgentStates()
+    prevBloomStages.clear()
   }, [getGardenRect])
 
   const resetGame = useCallback(() => {
     const fresh = createInitialState()
     fresh.debugMode = stateRef.current.debugMode // preserve debug toggle
     Object.assign(stateRef.current, fresh)
+    resetAgentStates()
+    prevBloomStages.clear()
   }, [])
 
   const spawnRat = useCallback((
@@ -143,6 +164,8 @@ export function useGameEngine() {
       opacity: 1,
       despawned: false,
     })
+
+    state.events.push({ type: 'rat_spawned', x, y })
   }, [])
 
   const update = useCallback((
@@ -163,19 +186,30 @@ export function useGameEngine() {
     // 2. Update flower bloom (fixed rate: full bloom in GAME_DURATION_MS)
     for (const flower of state.flowers) {
       if (!flower.alive) continue
-      flower.bloomProgress += (1 / GAME_DURATION_MS) * gameTimeDt
+      const prevProgress = flower.bloomProgress
+      flower.bloomProgress += (1 / GAME_DURATION_MS) * physicsDt
       if (flower.bloomProgress > 1) flower.bloomProgress = 1
+
+      // Check for bloom stage crossing
+      const prevStage = prevBloomStages.get(flower.id) ?? bloomStageIndex(prevProgress)
+      const newStage = bloomStageIndex(flower.bloomProgress)
+      if (newStage > prevStage) {
+        state.events.push({ type: 'bloom_stage', x: flower.x, y: flower.y, stage: newStage })
+      }
+      prevBloomStages.set(flower.id, newStage)
     }
 
     // 3. Check victory: all flowers fully bloomed
     if (state.flowers.every(f => f.alive && f.bloomProgress >= 1)) {
       state.phase = 'victory'
+      state.events.push({ type: 'victory' })
       return
     }
 
     // 4. Check defeat: all flowers dead
     if (state.flowers.every(f => !f.alive)) {
       state.phase = 'defeat'
+      state.events.push({ type: 'defeat' })
       return
     }
 
@@ -248,11 +282,11 @@ export function useGameEngine() {
       }
     }
 
-    // 8. Agent AI: agents chase and catch rats via Dijkstra pathfinding
+    // 8. Agent AI: agents chase and catch rats via A* pathfinding
     const agentSprites = sprites.filter(s => isAgent(s))
     if (agentSprites.length > 0) {
       const { cx: gcx, cy: gcy } = getGardenRect(bounds)
-      updateAgents(
+      const agentEvents = updateAgents(
         physicsDt,
         agentSprites,
         state.rats,
@@ -262,6 +296,7 @@ export function useGameEngine() {
         state.gridCols,
         { x: gcx, y: gcy },
       )
+      state.events.push(...agentEvents)
     }
 
     // 9. Collision: rat-vs-flower
@@ -281,6 +316,9 @@ export function useGameEngine() {
             flower.alive = false
           }
           rat.despawned = true
+          state.events.push({ type: 'flower_hit', x: flower.x, y: flower.y })
+          // Update bloom stage tracking after hit
+          prevBloomStages.set(flower.id, bloomStageIndex(flower.bloomProgress))
           break
         }
       }
@@ -308,6 +346,7 @@ export function useGameEngine() {
       const dy = y - rat.y
       if (dx * dx + dy * dy < rat.size * rat.size) {
         rat.despawned = true
+        state.events.push({ type: 'rat_caught', x: rat.x, y: rat.y })
         return true
       }
     }

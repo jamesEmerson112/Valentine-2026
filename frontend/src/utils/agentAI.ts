@@ -1,14 +1,21 @@
-import type { Sprite, Rat, AgentAssignment } from '../types'
-import { MinHeap } from './minHeap'
+import type { Sprite, Rat, AgentAssignment, GameEvent } from '../types'
 import { findPath } from './pathfinding'
 import {
   AGENT_SPEED,
   AGENT_SPRINT_SPEED,
   AGENT_AGGRO_RADIUS,
+  AGENT_SPRINT_RADIUS,
   AGENT_RAT_CATCH_DISTANCE,
   AGENT_REPATH_INTERVAL,
   AGENT_REPATH_THRESHOLD,
 } from './gameConfig'
+
+// Per-agent state: wandering (no target) or chasing (has assignment)
+const agentStates = new Map<string, 'wandering' | 'chasing'>()
+
+export function resetAgentStates() {
+  agentStates.clear()
+}
 
 export function isAgent(sprite: Sprite): boolean {
   return sprite.role === 'agent'
@@ -16,9 +23,9 @@ export function isAgent(sprite: Sprite): boolean {
 
 /**
  * Core agent AI update, called once per frame during gameplay.
- * Agents chase the second-closest-to-garden rat using A* pathfinding.
- * The closest rat is skipped (players tend to tap it themselves).
- * Falls back to the only rat if just one exists.
+ * Agents wander until a rat enters their aggro radius (450px),
+ * then chase to kill. Once chasing, they never give up.
+ * Returns events for rat catches.
  */
 export function updateAgents(
   dt: number,
@@ -28,75 +35,66 @@ export function updateAgents(
   grid: number[][] | null,
   gridRows: number,
   gridCols: number,
-  gardenCenter: { x: number; y: number },
-) {
-  if (!grid) return
+  _gardenCenter: { x: number; y: number },
+): GameEvent[] {
+  const events: GameEvent[] = []
+  if (!grid) return events
 
   // 1. Clean stale assignments (target rat despawned or gone)
   for (let i = assignments.length - 1; i >= 0; i--) {
     const a = assignments[i]
     const rat = rats.find(r => r.id === a.targetRatId)
     if (!rat || rat.despawned) {
+      agentStates.set(a.spriteId, 'wandering')
       assignments.splice(i, 1)
     }
   }
 
-  // 2. Build rat priority queue — unassigned alive rats sorted by distance to garden
+  // 2. Build set of already-assigned rat IDs (prevent dogpiling)
   const assignedRatIds = new Set(assignments.map(a => a.targetRatId))
-  const aliveRats = rats.filter(r => !r.despawned && !assignedRatIds.has(r.id))
-
-  const ratQueue = new MinHeap<Rat>((a, b) => {
-    const da = distSq(a.x, a.y, gardenCenter.x, gardenCenter.y)
-    const db = distSq(b.x, b.y, gardenCenter.x, gardenCenter.y)
-    return da - db
-  })
-  for (const rat of aliveRats) {
-    ratQueue.push(rat)
-  }
-
-  // Skip the closest-to-garden rat (players tend to tap it themselves).
-  // Agents target the second-closest instead. Fall back to the only rat if just 1.
-  if (ratQueue.size > 1) {
-    ratQueue.pop() // discard the closest rat
-  }
-
-  // 3. Assign unassigned agents to second-closest-to-garden rats
   const assignedAgentIds = new Set(assignments.map(a => a.spriteId))
-  const availableAgents = agents.filter(a => !assignedAgentIds.has(a.id))
 
-  while (ratQueue.size > 0 && availableAgents.length > 0) {
-    const rat = ratQueue.pop()!
+  // 3. For each unassigned agent, scan for rats within aggro radius
+  for (const agent of agents) {
+    if (assignedAgentIds.has(agent.id)) continue
 
-    // Find nearest available agent to this rat
-    let bestIdx = -1
-    let bestDist = Infinity
-    for (let i = 0; i < availableAgents.length; i++) {
-      const agent = availableAgents[i]
-      const acx = agent.x + agent.width / 2
-      const acy = agent.y + agent.height / 2
-      const d = distSq(acx, acy, rat.x, rat.y)
-      if (d < bestDist) {
-        bestDist = d
-        bestIdx = i
-      }
+    // Ensure state exists
+    if (!agentStates.has(agent.id)) {
+      agentStates.set(agent.id, 'wandering')
     }
-    if (bestIdx === -1) break
 
-    const agent = availableAgents[bestIdx]
     const acx = agent.x + agent.width / 2
     const acy = agent.y + agent.height / 2
-    const path = findPath(grid, gridRows, gridCols, acx, acy, rat.x, rat.y)
-    if (path.length === 0) continue // no path found, skip
 
-    assignments.push({
-      spriteId: agent.id,
-      targetRatId: rat.id,
-      path,
-      pathIndex: 0,
-      repathTimer: 0,
-    })
+    // Find closest unassigned alive rat within aggro radius
+    let bestRat: Rat | null = null
+    let bestDist = Infinity
+    for (const rat of rats) {
+      if (rat.despawned || assignedRatIds.has(rat.id)) continue
+      const dx = acx - rat.x
+      const dy = acy - rat.y
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      if (dist <= AGENT_AGGRO_RADIUS && dist < bestDist) {
+        bestDist = dist
+        bestRat = rat
+      }
+    }
 
-    availableAgents.splice(bestIdx, 1)
+    if (bestRat) {
+      const path = findPath(grid, gridRows, gridCols, acx, acy, bestRat.x, bestRat.y)
+      if (path.length === 0) continue
+
+      assignments.push({
+        spriteId: agent.id,
+        targetRatId: bestRat.id,
+        path,
+        pathIndex: 0,
+        repathTimer: 0,
+      })
+      assignedRatIds.add(bestRat.id)
+      assignedAgentIds.add(agent.id)
+      agentStates.set(agent.id, 'chasing')
+    }
   }
 
   // 4. Move assigned agents along waypoints & handle repath/catch
@@ -108,7 +106,7 @@ export function updateAgents(
     const acx = agent.x + agent.width / 2
     const acy = agent.y + agent.height / 2
 
-    // 5. Repath check
+    // Repath check
     assignment.repathTimer += dt
     const pathEnd = assignment.path[assignment.path.length - 1]
     const ratMoved = pathEnd
@@ -124,31 +122,28 @@ export function updateAgents(
       }
     }
 
-    // Move along waypoints — sprint if target rat is within aggro radius
+    // Move along waypoints — sprint if target rat is within sprint radius
     const distToRat = Math.sqrt(distSq(acx, acy, rat.x, rat.y))
-    const speed = distToRat <= AGENT_AGGRO_RADIUS ? AGENT_SPRINT_SPEED : AGENT_SPEED
+    const speed = distToRat <= AGENT_SPRINT_RADIUS ? AGENT_SPRINT_SPEED : AGENT_SPEED
     let remaining = speed * dt
     while (remaining > 0 && assignment.pathIndex < assignment.path.length) {
       const wp = assignment.path[assignment.pathIndex]
-      const dx = wp.x - acx
-      const dy = wp.y - acy
+      const dx = wp.x - (agent.x + agent.width / 2)
+      const dy = wp.y - (agent.y + agent.height / 2)
       const d = Math.sqrt(dx * dx + dy * dy)
 
       if (d <= remaining) {
-        // Reached this waypoint
         agent.x = wp.x - agent.width / 2
         agent.y = wp.y - agent.height / 2
         remaining -= d
         assignment.pathIndex++
       } else {
-        // Move toward waypoint
         const ratio = remaining / d
         agent.x += dx * ratio
         agent.y += dy * ratio
         remaining = 0
       }
 
-      // Set facing direction
       if (Math.abs(dx) > 0.5) {
         agent.flipX = dx < 0
       }
@@ -171,15 +166,18 @@ export function updateAgents(
       }
     }
 
-    // 6. Catch check
+    // Catch check
     const finalAcx = agent.x + agent.width / 2
     const finalAcy = agent.y + agent.height / 2
     const catchDist = Math.sqrt(distSq(finalAcx, finalAcy, rat.x, rat.y))
     if (catchDist < AGENT_RAT_CATCH_DISTANCE) {
       rat.despawned = true
+      events.push({ type: 'rat_caught', x: rat.x, y: rat.y })
       // Assignment will be cleaned next frame
     }
   }
+
+  return events
 }
 
 function distSq(x1: number, y1: number, x2: number, y2: number): number {

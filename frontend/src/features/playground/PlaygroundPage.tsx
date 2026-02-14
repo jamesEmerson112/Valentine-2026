@@ -7,6 +7,8 @@ import { drawFlower, drawRat, drawGardenBoundary, drawObstacle, drawNavGrid, dra
 import { isAgent } from '../../utils/agentAI'
 import { drawHeart } from '../../utils/canvasHelpers'
 import { processImageFile } from '../../utils/imageUpload'
+import { soundEngine } from '../../utils/soundEngine'
+import { particles, emitRatCaughtParticles, emitBloomParticles, emitVictoryParticles } from '../../utils/particleSystem'
 import { SpritesContext } from '../../App'
 import DrawingCanvas from './DrawingCanvas'
 import CatCompanion from './CatCompanion'
@@ -29,6 +31,7 @@ export default function PlaygroundPage() {
   const [showDrawing, setShowDrawing] = useState(false)
   const [spawnTrigger, setSpawnTrigger] = useState(0)
   const [uploadPreview, setUploadPreview] = useState<{ dataUrl: string; width: number; height: number } | null>(null)
+  const [isMuted, setIsMuted] = useState(false)
   const [hudState, setHudState] = useState<HudState>({
     phase: 'idle', elapsedTime: 0, currentWave: 0, flowerStates: [], debugMode: false,
   })
@@ -121,16 +124,28 @@ export default function PlaygroundPage() {
   }, [uploadPreview, handleExtract])
 
   const handleStartGame = useCallback(() => {
+    soundEngine.init()
+    soundEngine.startMusic()
     game.startGame({ width: size.width, height: size.height })
   }, [game, size])
 
   const handlePlayAgain = useCallback(() => {
+    particles.clear()
+    soundEngine.stopMusic()
     game.resetGame()
   }, [game])
 
   const handleTryAgain = useCallback(() => {
+    particles.clear()
+    soundEngine.stopMusic()
     game.resetGame()
   }, [game])
+
+  const handleToggleMute = useCallback(() => {
+    soundEngine.init()
+    const muted = soundEngine.toggleMute()
+    setIsMuted(muted)
+  }, [])
 
   const handlePageClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (game.stateRef.current.phase !== 'playing') return
@@ -164,6 +179,38 @@ export default function PlaygroundPage() {
     if (state.phase === 'playing') {
       game.update(dt, bounds, currentSprites)
     }
+
+    // Update particles
+    particles.update(dt)
+
+    // Drain events
+    for (const event of state.events) {
+      switch (event.type) {
+        case 'rat_caught':
+          soundEngine.playRatCaught()
+          if (event.x != null && event.y != null) emitRatCaughtParticles(event.x, event.y)
+          break
+        case 'rat_spawned':
+          soundEngine.playRatSpawn()
+          break
+        case 'bloom_stage':
+          if (event.stage != null) soundEngine.playBloomStage(event.stage)
+          if (event.x != null && event.y != null && event.stage != null) emitBloomParticles(event.x, event.y, event.stage)
+          break
+        case 'victory':
+          soundEngine.playVictory()
+          soundEngine.stopMusic()
+          emitVictoryParticles(bounds.width, bounds.height)
+          break
+        case 'defeat':
+          soundEngine.playDefeat()
+          soundEngine.stopMusic()
+          break
+        case 'flower_hit':
+          break
+      }
+    }
+    state.events = []
 
     // Draw garden boundary (idle + playing)
     if (state.phase === 'idle' || state.phase === 'playing') {
@@ -240,6 +287,9 @@ export default function PlaygroundPage() {
       ctx.restore()
     }
 
+    // Render particles (after sprites, before HUD)
+    particles.render(ctx)
+
     // Throttled HUD sync (~250ms)
     hudUpdateTimerRef.current += dt
     if (hudUpdateTimerRef.current >= 250) {
@@ -291,6 +341,21 @@ export default function PlaygroundPage() {
               </div>
             ))}
           </div>
+          <button className="mute-btn" onClick={handleToggleMute} title={isMuted ? 'Unmute' : 'Mute'}>
+            {isMuted ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <line x1="23" y1="9" x2="17" y2="15" />
+                <line x1="17" y1="9" x2="23" y2="15" />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              </svg>
+            )}
+          </button>
         </div>
       )}
 
