@@ -146,6 +146,213 @@
   50% { opacity: 1; }
 }
 
+/* Game HUD */
+.game-hud {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.game-timer {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(10px);
+  border: 1.5px solid rgba(255, 107, 129, 0.2);
+  border-radius: 24px;
+  padding: 8px 18px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--pink-dark);
+  cursor: pointer;
+  transition: transform 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.game-timer:hover {
+  transform: scale(1.02);
+}
+
+.game-timer:active {
+  transform: scale(0.97);
+}
+
+.debug-badge {
+  background: linear-gradient(135deg, var(--pink-primary), var(--pink-deep));
+  color: white;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.game-wave {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba(255, 107, 129, 0.15);
+  border-radius: 16px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--pink-dark);
+}
+
+.game-flowers {
+  display: flex;
+  gap: 5px;
+  align-items: flex-end;
+}
+
+.flower-pip {
+  width: 10px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgba(76, 175, 80, 0.4);
+  border-radius: 5px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.3s;
+}
+
+.flower-pip.dead {
+  border-color: rgba(200, 50, 50, 0.5);
+  opacity: 0.5;
+}
+
+.flower-pip-fill {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, #4CAF50, #81C784);
+  border-radius: 3px;
+  transition: height 0.3s ease;
+}
+
+.flower-pip.dead .flower-pip-fill {
+  background: linear-gradient(to top, #c44569, #ff6b81);
+}
+
+/* Start button */
+.playground-start-btn {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: linear-gradient(135deg, #4CAF50, #66BB6A);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 16px 40px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 24px rgba(76, 175, 80, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+  letter-spacing: 0.5px;
+  animation: startBtnPulse 2s ease-in-out infinite;
+}
+
+.playground-start-btn:hover {
+  transform: translateX(-50%) translateY(-2px) scale(1.03);
+  box-shadow: 0 6px 28px rgba(76, 175, 80, 0.5);
+}
+
+.playground-start-btn:active {
+  transform: translateX(-50%) translateY(0) scale(0.97);
+  animation: none;
+}
+
+@keyframes startBtnPulse {
+  0%, 100% { box-shadow: 0 4px 24px rgba(76, 175, 80, 0.4); }
+  50% { box-shadow: 0 4px 32px rgba(76, 175, 80, 0.6); }
+}
+
+/* Valentine victory card */
+.valentine-card {
+  position: relative;
+  background: linear-gradient(145deg, #fff0f3, #ffd6e0, #ffb3c1);
+  border-radius: 24px;
+  padding: 48px 40px 36px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(255, 107, 129, 0.3);
+  animation: cardSlideIn 0.5s ease-out;
+  overflow: hidden;
+}
+
+.valentine-card-deco {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.valentine-card-title {
+  font-family: 'Georgia', serif;
+  font-size: 1.8rem;
+  color: var(--pink-deep);
+  margin: 0 0 16px;
+  position: relative;
+}
+
+.valentine-card-message {
+  font-family: 'Georgia', serif;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--pink-dark);
+  margin: 0 0 28px;
+  position: relative;
+}
+
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Defeat card */
+.defeat-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 40px 36px 32px;
+  max-width: 380px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+  animation: cardSlideIn 0.4s ease-out;
+}
+
+.defeat-card-title {
+  font-family: 'Georgia', serif;
+  font-size: 1.4rem;
+  color: var(--pink-dark);
+  margin: 0 0 12px;
+}
+
+.defeat-card-message {
+  font-size: 1rem;
+  color: #666;
+  margin: 0 0 24px;
+}
+
+.defeat-card-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
 @media (max-width: 480px) {
   .playground-draw-btn,
   .playground-upload-btn {
@@ -168,5 +375,35 @@
 
   .playground-hint p {
     font-size: 1.1rem;
+  }
+
+  .game-hud {
+    top: 12px;
+    left: 12px;
+  }
+
+  .game-timer {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+    min-height: 44px;
+  }
+
+  .playground-start-btn {
+    padding: 14px 32px;
+    font-size: 1.05rem;
+    min-height: 44px;
+    bottom: 80px;
+  }
+
+  .valentine-card {
+    padding: 36px 24px 28px;
+  }
+
+  .valentine-card-title {
+    font-size: 1.4rem;
+  }
+
+  .defeat-card {
+    padding: 32px 24px 24px;
   }
 }

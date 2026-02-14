@@ -25,6 +25,7 @@ interface StoredSprite {
   imageData: string
   width: number
   height: number
+  role?: 'agent'
 }
 
 function rehydrateSprite(stored: StoredSprite): Sprite {
@@ -45,6 +46,7 @@ function rehydrateSprite(stored: StoredSprite): Sprite {
     flipX: false,
     rotation: 0,
     speed: baseSpeed(behavior),
+    ...(stored.role ? { role: stored.role } : {}),
   }
 }
 
@@ -79,6 +81,7 @@ function loadSprites(): Sprite[] {
       flipX: false,
       rotation: 0,
       speed: baseSpeed(behavior),
+      ...(fig.role ? { role: fig.role } : {}),
     }
   })
 }
@@ -96,6 +99,7 @@ function App() {
         imageData: s.imageData,
         width: s.width,
         height: s.height,
+        ...(s.role ? { role: s.role } : {}),
       }))
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toStore))
     }, 500)

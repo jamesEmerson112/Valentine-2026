@@ -1,11 +1,13 @@
 interface StarterFigure {
   name: string
+  role?: 'agent'
   draw: (ctx: CanvasRenderingContext2D, size: number) => void
 }
 
 const figures: StarterFigure[] = [
   {
     name: 'bunny',
+    role: 'agent',
     draw: (ctx, size) => {
       const s = size / 80
       // Ears
@@ -74,6 +76,7 @@ const figures: StarterFigure[] = [
   },
   {
     name: 'cat',
+    role: 'agent',
     draw: (ctx, size) => {
       const s = size / 70
       // Body
@@ -205,7 +208,7 @@ const figures: StarterFigure[] = [
 /**
  * Generate starter sprite data URLs by drawing programmatic figures onto offscreen canvases.
  */
-export function generateStarterSprites(): { imageData: string; width: number; height: number }[] {
+export function generateStarterSprites(): { imageData: string; width: number; height: number; role?: 'agent' }[] {
   return figures.map(fig => {
     const size = 70
     const canvas = document.createElement('canvas')
@@ -217,6 +220,7 @@ export function generateStarterSprites(): { imageData: string; width: number; he
       imageData: canvas.toDataURL(),
       width: size,
       height: size,
+      ...(fig.role ? { role: fig.role } : {}),
     }
   })
 }
