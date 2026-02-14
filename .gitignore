@@ -1,0 +1,128 @@
+#######################
+# Rust / Cargo / Backend
+#######################
+backend/target/
+backend/.cargo/
+backend/**/*.rs.bk
+backend/Cargo.lock  # Remove this line if backend becomes a library
+
+#######################
+# Node / NPM / Frontend
+#######################
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+frontend/.vite/
+frontend/.cache/
+frontend/.parcel-cache/
+frontend/.next/
+frontend/out/
+frontend/build/
+
+# Coverage and test artifacts
+frontend/coverage/
+frontend/.nyc_output/
+frontend/.jest/
+
+# TypeScript
+frontend/*.tsbuildinfo
+frontend/.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+#######################
+# Environment & Secrets
+#######################
+.env
+.env.*
+!.env.example
+!.env.template
+*.pem
+*.key
+*.p12
+*.pfx
+secrets.json
+credentials.json
+
+#######################
+# IDE & Editors
+#######################
+# VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# IntelliJ / WebStorm / RustRover
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+.*.sw?
+
+# Emacs
+\#*\#
+.#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+#######################
+# OS Files
+#######################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+#######################
+# Temporary & Misc
+#######################
+*.tmp
+*.temp
+*.bak
+*.swp
+*.pid
+*.seed
+*.pid.lock
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
