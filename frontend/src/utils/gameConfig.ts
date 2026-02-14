@@ -1,7 +1,7 @@
 import type { WaveConfig, SpawnEdge } from '../types'
 
 // Durations
-export const GAME_DURATION_MS = 60_000 // 1 minute (debug tuning)
+export const GAME_DURATION_MS = 600_000 // 10 minutes
 export const TIME_SCALE_DEBUG = 10
 
 // Flowers
@@ -21,10 +21,6 @@ export const RAT_KNOCKBACK_DURATION = 400 // ms
 // Collision
 export const DEFENDER_RAT_COLLISION_DISTANCE = 35 // center-to-center px
 export const RAT_FLOWER_HIT_RADIUS = 20 // center-to-center px
-
-// Debug tap detection
-export const DEBUG_TAP_COUNT = 3
-export const DEBUG_TAP_WINDOW = 600 // ms
 
 // Agent AI
 export const AGENT_SPEED = 0.12 // px per ms (3x rat speed)
@@ -50,9 +46,9 @@ const SIDES: SpawnEdge[] = ['left', 'right']
 const ALL_EDGES: SpawnEdge[] = ['left', 'right', 'top', 'bottom']
 
 export const WAVES: WaveConfig[] = [
-  { waveNumber: 1, startTime: 0,      endTime: 12_000,  ratCount: 3,  ratSpeed: 0.8,  spawnEdges: SIDES },
-  { waveNumber: 2, startTime: 12_000, endTime: 24_000,  ratCount: 4,  ratSpeed: 0.9,  spawnEdges: SIDES },
-  { waveNumber: 3, startTime: 24_000, endTime: 40_000,  ratCount: 6,  ratSpeed: 1.0,  spawnEdges: [...SIDES, 'top'] },
-  { waveNumber: 4, startTime: 40_000, endTime: 52_000,  ratCount: 8,  ratSpeed: 1.15, spawnEdges: ALL_EDGES },
-  { waveNumber: 5, startTime: 52_000, endTime: 60_000,  ratCount: 10, ratSpeed: 1.3,  spawnEdges: ALL_EDGES },
+  { waveNumber: 1, startTime: 0,       endTime: 120_000,  ratCount: 3,  ratSpeed: 0.8,  spawnEdges: SIDES },
+  { waveNumber: 2, startTime: 120_000, endTime: 240_000,  ratCount: 4,  ratSpeed: 0.9,  spawnEdges: SIDES },
+  { waveNumber: 3, startTime: 240_000, endTime: 400_000,  ratCount: 6,  ratSpeed: 1.0,  spawnEdges: [...SIDES, 'top'] },
+  { waveNumber: 4, startTime: 400_000, endTime: 520_000,  ratCount: 8,  ratSpeed: 1.15, spawnEdges: ALL_EDGES },
+  { waveNumber: 5, startTime: 520_000, endTime: 600_000,  ratCount: 10, ratSpeed: 1.3,  spawnEdges: ALL_EDGES },
 ]

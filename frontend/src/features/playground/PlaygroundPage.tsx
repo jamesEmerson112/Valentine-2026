@@ -3,10 +3,9 @@ import { useAnimationFrame } from '../../hooks/useAnimationFrame'
 import { useWindowSize } from '../../hooks/useWindowSize'
 import { useGameEngine } from '../../hooks/useGameEngine'
 import { updateSprite, randomBehavior, initialVelocity, baseSpeed } from '../../utils/spriteAnimator'
-import { drawFlower, drawRat, drawGardenBoundary, drawObstacle } from '../../utils/gameRenderers'
+import { drawFlower, drawRat, drawGardenBoundary, drawObstacle, drawNavGrid, drawAgentDebug, drawAgentPaths, drawDebugHUD } from '../../utils/gameRenderers'
 import { isAgent } from '../../utils/agentAI'
 import { drawHeart } from '../../utils/canvasHelpers'
-import { GAME_DURATION_MS } from '../../utils/gameConfig'
 import { processImageFile } from '../../utils/imageUpload'
 import { SpritesContext } from '../../App'
 import DrawingCanvas from './DrawingCanvas'
@@ -79,6 +78,7 @@ export default function PlaygroundPage() {
       flipX: false,
       rotation: 0,
       speed: baseSpeed(behavior),
+      role: 'agent',
     }
 
     setSprites(prev => [...prev, newSprite])
@@ -205,6 +205,16 @@ export default function PlaygroundPage() {
         ctx.setLineDash([])
         ctx.restore()
       }
+
+      // Debug overlays
+      if (state.debugMode) {
+        drawNavGrid(ctx, state.grid, state.gridRows, state.gridCols)
+        drawAgentDebug(ctx, currentSprites, state.agentAssignments, state.rats, time)
+        drawAgentPaths(ctx, currentSprites, state.agentAssignments)
+        const agentCount = currentSprites.filter(s => s.role === 'agent').length
+        const ratCount = state.rats.filter(r => !r.despawned).length
+        drawDebugHUD(ctx, agentCount, ratCount, state.agentAssignments.length, state.gridCols, state.gridRows)
+      }
     }
 
     // Update and draw sprites (always)
@@ -264,10 +274,10 @@ export default function PlaygroundPage() {
       {/* Game HUD — visible during playing */}
       {hudState.phase === 'playing' && (
         <div className="game-hud">
-          <button className="game-timer" onClick={game.handleTimerTap}>
-            {formatTime(hudState.elapsedTime)} / {formatTime(GAME_DURATION_MS)}
+          <div className="game-timer">
+            {formatTime(hudState.elapsedTime)}
             {hudState.debugMode && <span className="debug-badge">10x</span>}
-          </button>
+          </div>
           {hudState.currentWave > 0 && (
             <div className="game-wave">Wave {hudState.currentWave}</div>
           )}

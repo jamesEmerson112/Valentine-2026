@@ -1,4 +1,11 @@
-import type { Flower, Rat, Obstacle } from '../types'
+import type { Flower, Rat, Obstacle, Sprite, AgentAssignment } from '../types'
+import {
+  AGENT_AGGRO_RADIUS,
+  AGENT_RAT_CATCH_DISTANCE,
+  GRID_CELL_SIZE,
+  TIME_SCALE_DEBUG,
+} from './gameConfig'
+import { isAgent } from './agentAI'
 
 /**
  * Draw a flower at its current bloom stage.
@@ -372,5 +379,173 @@ export function drawGardenBoundary(
   ctx.stroke()
 
   ctx.setLineDash([])
+  ctx.restore()
+}
+
+// ─── Debug Visualizations ────────────────────────────────────────────
+
+export function drawNavGrid(
+  ctx: CanvasRenderingContext2D,
+  grid: number[][] | null,
+  gridRows: number,
+  gridCols: number,
+) {
+  if (!grid) return
+  ctx.save()
+
+  // Blocked cells tinted red
+  for (let r = 0; r < gridRows; r++) {
+    for (let c = 0; c < gridCols; c++) {
+      if (grid[r][c] === 1) {
+        ctx.fillStyle = 'rgba(255, 60, 60, 0.15)'
+        ctx.fillRect(c * GRID_CELL_SIZE, r * GRID_CELL_SIZE, GRID_CELL_SIZE, GRID_CELL_SIZE)
+      }
+    }
+  }
+
+  // Faint grid lines
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'
+  ctx.lineWidth = 0.5
+  for (let r = 0; r <= gridRows; r++) {
+    const y = r * GRID_CELL_SIZE
+    ctx.beginPath()
+    ctx.moveTo(0, y)
+    ctx.lineTo(gridCols * GRID_CELL_SIZE, y)
+    ctx.stroke()
+  }
+  for (let c = 0; c <= gridCols; c++) {
+    const x = c * GRID_CELL_SIZE
+    ctx.beginPath()
+    ctx.moveTo(x, 0)
+    ctx.lineTo(x, gridRows * GRID_CELL_SIZE)
+    ctx.stroke()
+  }
+
+  ctx.restore()
+}
+
+export function drawAgentDebug(
+  ctx: CanvasRenderingContext2D,
+  sprites: Sprite[],
+  assignments: AgentAssignment[],
+  rats: Rat[],
+  time: number,
+) {
+  ctx.save()
+  for (const sprite of sprites) {
+    if (!isAgent(sprite)) continue
+    const acx = sprite.x + sprite.width / 2
+    const acy = sprite.y + sprite.height / 2
+
+    // Check if sprinting (target rat within aggro radius)
+    let isSprinting = false
+    const assignment = assignments.find(a => a.spriteId === sprite.id)
+    if (assignment) {
+      const rat = rats.find(r => r.id === assignment.targetRatId)
+      if (rat && !rat.despawned) {
+        const dx = acx - rat.x
+        const dy = acy - rat.y
+        isSprinting = Math.sqrt(dx * dx + dy * dy) <= AGENT_AGGRO_RADIUS
+      }
+    }
+
+    // Aggro radius — dashed blue circle
+    ctx.strokeStyle = 'rgba(80, 160, 255, 0.4)'
+    ctx.lineWidth = 1.5
+    ctx.setLineDash([6, 4])
+    ctx.beginPath()
+    ctx.arc(acx, acy, AGENT_AGGRO_RADIUS, 0, Math.PI * 2)
+    ctx.stroke()
+    ctx.setLineDash([])
+
+    // Catch radius — solid orange circle, pulses when sprinting
+    const pulse = isSprinting ? 0.6 + Math.sin(time * 0.008) * 0.3 : 0.4
+    ctx.strokeStyle = `rgba(255, 160, 40, ${pulse})`
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.arc(acx, acy, AGENT_RAT_CATCH_DISTANCE, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.restore()
+}
+
+export function drawAgentPaths(
+  ctx: CanvasRenderingContext2D,
+  sprites: Sprite[],
+  assignments: AgentAssignment[],
+) {
+  ctx.save()
+  ctx.strokeStyle = 'rgba(80, 220, 100, 0.5)'
+  ctx.lineWidth = 2
+  ctx.setLineDash([4, 3])
+
+  for (const assignment of assignments) {
+    const agent = sprites.find(s => s.id === assignment.spriteId)
+    if (!agent) continue
+    const remaining = assignment.path.slice(assignment.pathIndex)
+    if (remaining.length === 0) continue
+
+    const acx = agent.x + agent.width / 2
+    const acy = agent.y + agent.height / 2
+
+    ctx.beginPath()
+    ctx.moveTo(acx, acy)
+    for (const wp of remaining) {
+      ctx.lineTo(wp.x, wp.y)
+    }
+    ctx.stroke()
+
+    // Waypoint dots
+    ctx.fillStyle = 'rgba(80, 220, 100, 0.6)'
+    for (const wp of remaining) {
+      ctx.beginPath()
+      ctx.arc(wp.x, wp.y, 2, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  }
+
+  ctx.setLineDash([])
+  ctx.restore()
+}
+
+export function drawDebugHUD(
+  ctx: CanvasRenderingContext2D,
+  agentCount: number,
+  ratCount: number,
+  assignmentCount: number,
+  gridCols: number,
+  gridRows: number,
+) {
+  ctx.save()
+
+  const lines = [
+    `Agents: ${agentCount}`,
+    `Rats: ${ratCount}`,
+    `Assigned: ${assignmentCount}`,
+    `Time: ${TIME_SCALE_DEBUG}x`,
+    `Grid: ${gridCols}x${gridRows}`,
+  ]
+
+  const lineHeight = 16
+  const padding = 8
+  const panelW = 120
+  const panelH = lines.length * lineHeight + padding * 2
+  const panelX = 8
+  const panelY = 8
+
+  // Background
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.55)'
+  ctx.beginPath()
+  ctx.roundRect(panelX, panelY, panelW, panelH, 6)
+  ctx.fill()
+
+  // Text
+  ctx.fillStyle = '#ccc'
+  ctx.font = '12px monospace'
+  ctx.textBaseline = 'top'
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], panelX + padding, panelY + padding + i * lineHeight)
+  }
+
   ctx.restore()
 }

@@ -10,8 +10,6 @@ import {
   RAT_BASE_SPEED,
   RAT_SIZE,
   RAT_FLOWER_HIT_RADIUS,
-  DEBUG_TAP_COUNT,
-  DEBUG_TAP_WINDOW,
   WAVES,
 } from '../utils/gameConfig'
 import { generateObstacles } from '../utils/obstacleGenerator'
@@ -27,9 +25,7 @@ function createInitialState(): TDGameState {
     currentWave: 0,
     ratsSpawnedThisWave: 0,
     nextRatSpawnTime: 0,
-    debugMode: false,
-    debugTapCount: 0,
-    debugTapTimer: 0,
+    debugMode: import.meta.env.VITE_DEBUG === 'true',
     ratIdCounter: 0,
     obstacles: [],
     agentAssignments: [],
@@ -93,22 +89,6 @@ export function useGameEngine() {
     const fresh = createInitialState()
     fresh.debugMode = stateRef.current.debugMode // preserve debug toggle
     Object.assign(stateRef.current, fresh)
-  }, [])
-
-  const handleTimerTap = useCallback(() => {
-    const state = stateRef.current
-    const now = performance.now()
-
-    if (now - state.debugTapTimer > DEBUG_TAP_WINDOW) {
-      state.debugTapCount = 0
-    }
-    state.debugTapCount++
-    state.debugTapTimer = now
-
-    if (state.debugTapCount >= DEBUG_TAP_COUNT) {
-      state.debugMode = !state.debugMode
-      state.debugTapCount = 0
-    }
   }, [])
 
   const spawnRat = useCallback((
@@ -180,18 +160,17 @@ export function useGameEngine() {
     // 1. Advance elapsed time
     state.elapsedTime += gameTimeDt
 
-    // 2. Check victory
-    if (state.elapsedTime >= GAME_DURATION_MS) {
-      state.phase = 'victory'
-      state.elapsedTime = GAME_DURATION_MS
-      return
-    }
-
-    // 3. Update flower bloom
+    // 2. Update flower bloom (fixed rate: full bloom in GAME_DURATION_MS)
     for (const flower of state.flowers) {
       if (!flower.alive) continue
       flower.bloomProgress += (1 / GAME_DURATION_MS) * gameTimeDt
       if (flower.bloomProgress > 1) flower.bloomProgress = 1
+    }
+
+    // 3. Check victory: all flowers fully bloomed
+    if (state.flowers.every(f => f.alive && f.bloomProgress >= 1)) {
+      state.phase = 'victory'
+      return
     }
 
     // 4. Check defeat: all flowers dead
@@ -200,20 +179,33 @@ export function useGameEngine() {
       return
     }
 
-    // 5. Wave spawning
-    const wave = WAVES.find(w =>
+    // 5. Wave spawning (repeats last wave endlessly)
+    let wave = WAVES.find(w =>
       state.elapsedTime >= w.startTime && state.elapsedTime < w.endTime
     )
+    const lastWave = WAVES[WAVES.length - 1]
+    if (!wave && state.elapsedTime >= lastWave.endTime) {
+      wave = lastWave // endless last wave
+    }
     if (wave) {
       if (wave.waveNumber !== state.currentWave) {
         state.currentWave = wave.waveNumber
         state.ratsSpawnedThisWave = 0
-        // Calculate spawn interval for this wave
         const waveDuration = wave.endTime - wave.startTime
         state.nextRatSpawnTime = wave.startTime + waveDuration / (wave.ratCount + 1)
       }
 
-      if (state.ratsSpawnedThisWave < wave.ratCount) {
+      // For the endless last wave, use a fixed spawn interval
+      const isEndless = state.elapsedTime >= lastWave.endTime
+      if (isEndless) {
+        const interval = (lastWave.endTime - lastWave.startTime) / (lastWave.ratCount + 1)
+        state.nextRatSpawnTime -= gameTimeDt
+        if (state.nextRatSpawnTime <= 0) {
+          state.nextRatSpawnTime = interval
+          const edge = lastWave.spawnEdges[Math.floor(Math.random() * lastWave.spawnEdges.length)]
+          spawnRat(state, bounds, edge, lastWave.ratSpeed)
+        }
+      } else if (state.ratsSpawnedThisWave < wave.ratCount) {
         const waveDuration = wave.endTime - wave.startTime
         const interval = waveDuration / (wave.ratCount + 1)
         const nextSpawnAt = wave.startTime + interval * (state.ratsSpawnedThisWave + 1)
@@ -322,7 +314,7 @@ export function useGameEngine() {
     return false
   }, [])
 
-  return { stateRef, startGame, update, resetGame, getGardenRect, handleTimerTap, handleTapRat }
+  return { stateRef, startGame, update, resetGame, getGardenRect, handleTapRat }
 }
 
 function retargetRat(rat: Rat, state: TDGameState) {

@@ -88,8 +88,6 @@ export interface TDGameState {
   ratsSpawnedThisWave: number
   nextRatSpawnTime: number
   debugMode: boolean
-  debugTapCount: number
-  debugTapTimer: number
   ratIdCounter: number
   obstacles: Obstacle[]
   agentAssignments: AgentAssignment[]
