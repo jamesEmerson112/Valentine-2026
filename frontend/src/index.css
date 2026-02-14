@@ -13,6 +13,9 @@
   --pastel-pink: #ffd6e0;
   --pastel-lavender: #e8d5f5;
   --pastel-peach: #ffe5d9;
+  --sky-blue-light: #d4e4f7;
+  --sky-blue-medium: #b8d4f0;
+  --sky-sunset: #f0d6e0;
 }
 
 * {
@@ -25,6 +28,6 @@ body {
   font-family: system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #fff0f3 0%, #ffccd5 50%, #ffb3c1 100%);
+  background: linear-gradient(180deg, var(--sky-blue-light) 0%, var(--sky-blue-medium) 35%, var(--sky-sunset) 70%, var(--pink-light) 100%);
   min-height: 100vh;
 }

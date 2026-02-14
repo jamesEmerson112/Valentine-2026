@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react'
 
-export function useAnimationFrame(callback: (deltaTime: number) => void, active = true) {
+export function useAnimationFrame(callback: (deltaTime: number, time: number) => void, active = true) {
   const requestRef = useRef<number>(0)
   const previousTimeRef = useRef<number>(0)
   const callbackRef = useRef(callback)
@@ -10,7 +10,7 @@ export function useAnimationFrame(callback: (deltaTime: number) => void, active 
   const animate = useCallback((time: number) => {
     if (previousTimeRef.current !== 0) {
       const deltaTime = Math.min(time - previousTimeRef.current, 50) // cap at 50ms
-      callbackRef.current(deltaTime)
+      callbackRef.current(deltaTime, time)
     }
     previousTimeRef.current = time
     requestRef.current = requestAnimationFrame(animate)

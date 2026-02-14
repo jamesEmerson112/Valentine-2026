@@ -3,10 +3,15 @@ import { useAnimationFrame } from '../../hooks/useAnimationFrame'
 import catSvg from '../../assets/cat-companion.svg'
 import './CatCompanion.css'
 
-export default function CatCompanion() {
+interface CatCompanionProps {
+  spriteSpawnTrigger?: number
+}
+
+export default function CatCompanion({ spriteSpawnTrigger = 0 }: CatCompanionProps) {
   const [pos, setPos] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const [flipX, setFlipX] = useState(false)
   const [isIdle, setIsIdle] = useState(false)
+  const [isExcited, setIsExcited] = useState(false)
   const targetRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const posRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const idleTimerRef = useRef(0)
@@ -21,6 +26,14 @@ export default function CatCompanion() {
     window.addEventListener('pointermove', handleMouseMove)
     return () => window.removeEventListener('pointermove', handleMouseMove)
   }, [handleMouseMove])
+
+  // React to new sprite spawns
+  useEffect(() => {
+    if (spriteSpawnTrigger === 0) return
+    setIsExcited(true)
+    const timer = setTimeout(() => setIsExcited(false), 600)
+    return () => clearTimeout(timer)
+  }, [spriteSpawnTrigger])
 
   useAnimationFrame((dt) => {
     const lerp = 0.08
@@ -48,7 +61,7 @@ export default function CatCompanion() {
 
   return (
     <div
-      className={`cat-companion ${isIdle ? 'cat-idle' : ''}`}
+      className={`cat-companion ${isIdle ? 'cat-idle' : ''} ${isExcited ? 'cat-excited' : ''}`}
       style={{
         transform: `translate(${pos.x - 40}px, ${pos.y - 40}px) scaleX(${flipX ? -1 : 1})`,
       }}

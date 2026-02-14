@@ -23,3 +23,25 @@
     transform: translateY(-3px) scale(1.02);
   }
 }
+
+.cat-excited img {
+  animation: catJump 0.6s ease-out;
+}
+
+@keyframes catJump {
+  0% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+  30% {
+    transform: translateY(-25px) scale(1.1) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-20px) scale(1.08) rotate(3deg);
+  }
+  70% {
+    transform: translateY(-5px) scale(1.02) rotate(-1deg);
+  }
+  100% {
+    transform: translateY(0) scale(1) rotate(0deg);
+  }
+}

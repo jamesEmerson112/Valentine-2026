@@ -1,0 +1,60 @@
+.flying-birds {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fb-bird {
+  position: absolute;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes fbFlyRight {
+  0% {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(100vw + 60px));
+    opacity: 0;
+  }
+}
+
+@keyframes fbFlyLeft {
+  0% {
+    transform: translateX(calc(100vw + 60px));
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+}
+
+@keyframes fbFlap {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.6);
+  }
+}
+
+.fb-bird-svg {
+  animation: fbFlap 0.4s ease-in-out infinite;
+}

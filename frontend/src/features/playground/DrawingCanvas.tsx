@@ -13,7 +13,10 @@ export default function DrawingCanvas({ onExtract, onClose }: DrawingCanvasProps
   const [isDrawing, setIsDrawing] = useState(false)
   const [brushColor, setBrushColor] = useState<string>(BRUSH_COLORS[0])
   const [brushSize, setBrushSize] = useState(4)
+  const [isEraser, setIsEraser] = useState(false)
   const [strokeHistory, setStrokeHistory] = useState<ImageData[]>([])
+  const [preview, setPreview] = useState<{ dataUrl: string; width: number; height: number } | null>(null)
+  const [brushPos, setBrushPos] = useState<{ x: number; y: number } | null>(null)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
 
   // Set canvas size
@@ -45,23 +48,42 @@ export default function DrawingCanvas({ onExtract, onClose }: DrawingCanvasProps
   }, [getPos])
 
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    if (!isDrawing || !lastPos.current) return
     const canvas = canvasRef.current!
+    const rect = canvas.getBoundingClientRect()
+    setBrushPos({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+
+    if (!isDrawing || !lastPos.current) return
     const ctx = canvas.getContext('2d')!
     const pos = getPos(e)
 
-    ctx.strokeStyle = brushColor
+    ctx.save()
+    if (isEraser) {
+      ctx.globalCompositeOperation = 'destination-out'
+      ctx.strokeStyle = 'rgba(0,0,0,1)'
+    } else {
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.strokeStyle = brushColor
+    }
     ctx.lineWidth = brushSize
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
     ctx.beginPath()
     ctx.moveTo(lastPos.current.x, lastPos.current.y)
     ctx.lineTo(pos.x, pos.y)
     ctx.stroke()
+    ctx.restore()
     lastPos.current = pos
-  }, [isDrawing, brushColor, brushSize, getPos])
+  }, [isDrawing, brushColor, brushSize, isEraser, getPos])
 
   const handlePointerUp = useCallback(() => {
     setIsDrawing(false)
     lastPos.current = null
+  }, [])
+
+  const handlePointerLeave = useCallback(() => {
+    setIsDrawing(false)
+    lastPos.current = null
+    setBrushPos(null)
   }, [])
 
   const handleUndo = () => {
@@ -84,9 +106,24 @@ export default function DrawingCanvas({ onExtract, onClose }: DrawingCanvasProps
     const canvas = canvasRef.current!
     const result = extractDrawing(canvas)
     if (result) {
-      onExtract(result.dataUrl, result.width, result.height)
+      setPreview(result)
+    }
+  }
+
+  const handleConfirmPreview = () => {
+    if (preview) {
+      onExtract(preview.dataUrl, preview.width, preview.height)
       onClose()
     }
+  }
+
+  const handleRetryPreview = () => {
+    setPreview(null)
+  }
+
+  const handleColorSelect = (color: string) => {
+    setBrushColor(color)
+    setIsEraser(false)
   }
 
   return (
@@ -97,49 +134,90 @@ export default function DrawingCanvas({ onExtract, onClose }: DrawingCanvasProps
           <button className="drawing-close" onClick={onClose}>&times;</button>
         </div>
 
-        <canvas
-          ref={canvasRef}
-          className="drawing-canvas"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-        />
-
-        <div className="drawing-tools">
-          <div className="drawing-colors">
-            {BRUSH_COLORS.map(color => (
-              <button
-                key={color}
-                className={`color-swatch ${color === brushColor ? 'active' : ''}`}
-                style={{ background: color }}
-                onClick={() => setBrushColor(color)}
-                aria-label={`Color ${color}`}
+        {preview ? (
+          <div className="drawing-preview">
+            <div className="drawing-preview-checkerboard">
+              <img src={preview.dataUrl} alt="Your drawing" />
+            </div>
+            <div className="drawing-preview-actions">
+              <button className="draw-action-btn primary" onClick={handleConfirmPreview}>
+                Looks Good!
+              </button>
+              <button className="draw-action-btn" onClick={handleRetryPreview}>
+                Try Again
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="drawing-canvas-wrapper">
+              <canvas
+                ref={canvasRef}
+                className="drawing-canvas"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerLeave}
               />
-            ))}
-          </div>
+              {brushPos && (
+                <div
+                  className="brush-preview"
+                  style={{
+                    left: brushPos.x,
+                    top: brushPos.y,
+                    width: brushSize,
+                    height: brushSize,
+                    background: isEraser ? 'transparent' : brushColor,
+                    borderColor: isEraser ? '#999' : brushColor,
+                  }}
+                />
+              )}
+            </div>
 
-          <div className="drawing-size">
-            <label>Size</label>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={brushSize}
-              onChange={e => setBrushSize(Number(e.target.value))}
-            />
-          </div>
+            <div className="drawing-tools">
+              <div className="drawing-colors">
+                {BRUSH_COLORS.map(color => (
+                  <button
+                    key={color}
+                    className={`color-swatch ${color === brushColor && !isEraser ? 'active' : ''}`}
+                    style={{ background: color }}
+                    onClick={() => handleColorSelect(color)}
+                    aria-label={`Color ${color}`}
+                  />
+                ))}
+                <button
+                  className={`color-swatch eraser-swatch ${isEraser ? 'active' : ''}`}
+                  onClick={() => setIsEraser(!isEraser)}
+                  aria-label="Eraser"
+                  title="Eraser"
+                >
+                  <span className="eraser-icon">&#x232B;</span>
+                </button>
+              </div>
 
-          <div className="drawing-actions">
-            <button className="draw-action-btn" onClick={handleUndo} disabled={strokeHistory.length === 0}>
-              Undo
-            </button>
-            <button className="draw-action-btn" onClick={handleClear}>Clear</button>
-            <button className="draw-action-btn primary" onClick={handleBringToLife}>
-              Bring to Life!
-            </button>
-          </div>
-        </div>
+              <div className="drawing-size">
+                <label>Size</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="20"
+                  value={brushSize}
+                  onChange={e => setBrushSize(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="drawing-actions">
+                <button className="draw-action-btn" onClick={handleUndo} disabled={strokeHistory.length === 0}>
+                  Undo
+                </button>
+                <button className="draw-action-btn" onClick={handleClear}>Clear</button>
+                <button className="draw-action-btn primary" onClick={handleBringToLife}>
+                  Bring to Life!
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

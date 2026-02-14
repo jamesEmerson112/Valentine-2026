@@ -7,10 +7,12 @@ export interface Sprite {
   y: number
   vx: number
   vy: number
-  behavior: 'wander' | 'bounce' | 'float'
+  behavior: 'wander' | 'bounce' | 'float' | 'dance'
   angle: number // for wander direction changes
   timer: number // behavior-specific timer
   flipX: boolean
+  rotation: number
+  speed: number
 }
 
 export interface ValentineData {
