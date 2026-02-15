@@ -111,62 +111,62 @@ const PINK_GOLD = ['#ff6b81', '#ff4757', '#ffb8c6', '#ffd700', '#ffaa00']
 const GOLD_YELLOW = ['#ffd700', '#ffaa00', '#ffe066', '#fff3b0']
 const CONFETTI_COLORS = ['#ff6b81', '#ff4757', '#ffd700', '#4CAF50', '#42a5f5', '#ab47bc', '#ffb8c6']
 
-export function emitRatCaughtParticles(x: number, y: number) {
+export function emitRatCaughtParticles(x: number, y: number, scale: number = 1) {
   const shapes: Particle['shape'][] = ['heart', 'circle', 'star']
   particles.burst(12, (i) => {
     const angle = (i / 12) * Math.PI * 2
-    const speed = 60 + Math.random() * 80
+    const speed = (60 + Math.random() * 80) * scale
     return {
       x, y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       life: 0.6 + Math.random() * 0.4,
       maxLife: 1.0,
-      size: 4 + Math.random() * 4,
+      size: (4 + Math.random() * 4) * scale,
       color: PINK_GOLD[Math.floor(Math.random() * PINK_GOLD.length)],
       shape: shapes[i % shapes.length],
-      gravity: 40,
+      gravity: 40 * scale,
       rotation: Math.random() * Math.PI * 2,
       rotationSpeed: (Math.random() - 0.5) * 4,
     }
   })
 }
 
-export function emitBloomParticles(x: number, y: number, stage: number) {
+export function emitBloomParticles(x: number, y: number, stage: number, scale: number = 1) {
   const count = 8 + stage * 3
   particles.burst(count, (i) => {
     const angle = (i / count) * Math.PI * 2
-    const speed = 30 + stage * 15 + Math.random() * 30
+    const speed = (30 + stage * 15 + Math.random() * 30) * scale
     return {
       x, y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
       life: 0.5 + Math.random() * 0.5,
       maxLife: 1.0,
-      size: 3 + Math.random() * 3,
+      size: (3 + Math.random() * 3) * scale,
       color: GOLD_YELLOW[Math.floor(Math.random() * GOLD_YELLOW.length)],
       shape: 'star' as const,
-      gravity: -10,
+      gravity: -10 * scale,
       rotation: Math.random() * Math.PI * 2,
       rotationSpeed: (Math.random() - 0.5) * 6,
     }
   })
 }
 
-export function emitVictoryParticles(width: number, height: number) {
+export function emitVictoryParticles(width: number, height: number, scale: number = 1) {
   const shapes: Particle['shape'][] = ['heart', 'circle', 'star']
   particles.burst(80, () => {
     return {
       x: Math.random() * width,
       y: -10 - Math.random() * 40,
-      vx: (Math.random() - 0.5) * 60,
-      vy: 80 + Math.random() * 120,
+      vx: (Math.random() - 0.5) * 60 * scale,
+      vy: (80 + Math.random() * 120) * scale,
       life: 2.0 + Math.random() * 1.5,
       maxLife: 3.5,
-      size: 4 + Math.random() * 6,
+      size: (4 + Math.random() * 6) * scale,
       color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
       shape: shapes[Math.floor(Math.random() * shapes.length)],
-      gravity: 20,
+      gravity: 20 * scale,
       rotation: Math.random() * Math.PI * 2,
       rotationSpeed: (Math.random() - 0.5) * 5,
     }

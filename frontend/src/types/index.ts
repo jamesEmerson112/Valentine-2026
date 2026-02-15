@@ -21,6 +21,8 @@ export interface ValentineData {
   from: string
 }
 
+import type { ScaledConfig } from '../utils/gameConfig'
+
 // Tower Defense types
 
 export type BloomStage = 0 | 1 | 2 | 3 | 4
@@ -75,6 +77,15 @@ export interface AgentAssignment {
   path: { x: number; y: number }[]
   pathIndex: number
   repathTimer: number
+  isPlayerDirected?: boolean
+  destination?: { x: number; y: number }
+}
+
+export interface PlayerCommand {
+  type: 'move_to'
+  spriteId: string
+  destX: number
+  destY: number
 }
 
 export type TDGamePhase = 'idle' | 'playing' | 'victory' | 'defeat'
@@ -103,4 +114,6 @@ export interface TDGameState {
   gridCols: number
   gridRows: number
   events: GameEvent[]
+  playerCommands: PlayerCommand[]
+  scaledConfig: ScaledConfig | null
 }

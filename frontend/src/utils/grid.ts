@@ -1,18 +1,18 @@
 import type { Obstacle } from '../types'
 import { GRID_CELL_SIZE } from './gameConfig'
 
-const INFLATION = 35 // px buffer around obstacles for sprite clearance
-
 /**
  * Build a 2D navigation grid. 0 = walkable, 1 = blocked.
- * Obstacles are inflated by INFLATION px so sprites don't clip them.
+ * Obstacles are inflated by `inflation` px so sprites don't clip them.
  */
 export function buildGrid(
   bounds: { width: number; height: number },
-  obstacles: Obstacle[]
+  obstacles: Obstacle[],
+  cellSize: number = GRID_CELL_SIZE,
+  inflation: number = 35,
 ): { grid: number[][]; cols: number; rows: number } {
-  const cols = Math.ceil(bounds.width / GRID_CELL_SIZE)
-  const rows = Math.ceil(bounds.height / GRID_CELL_SIZE)
+  const cols = Math.ceil(bounds.width / cellSize)
+  const rows = Math.ceil(bounds.height / cellSize)
 
   // Initialize all walkable
   const grid: number[][] = []
@@ -22,15 +22,15 @@ export function buildGrid(
 
   // Mark cells overlapping inflated obstacles as blocked
   for (const obs of obstacles) {
-    const left = obs.x - INFLATION
-    const top = obs.y - INFLATION
-    const right = obs.x + obs.width + INFLATION
-    const bottom = obs.y + obs.height + INFLATION
+    const left = obs.x - inflation
+    const top = obs.y - inflation
+    const right = obs.x + obs.width + inflation
+    const bottom = obs.y + obs.height + inflation
 
-    const minCol = Math.max(0, Math.floor(left / GRID_CELL_SIZE))
-    const maxCol = Math.min(cols - 1, Math.floor(right / GRID_CELL_SIZE))
-    const minRow = Math.max(0, Math.floor(top / GRID_CELL_SIZE))
-    const maxRow = Math.min(rows - 1, Math.floor(bottom / GRID_CELL_SIZE))
+    const minCol = Math.max(0, Math.floor(left / cellSize))
+    const maxCol = Math.min(cols - 1, Math.floor(right / cellSize))
+    const minRow = Math.max(0, Math.floor(top / cellSize))
+    const maxRow = Math.min(rows - 1, Math.floor(bottom / cellSize))
 
     for (let r = minRow; r <= maxRow; r++) {
       for (let c = minCol; c <= maxCol; c++) {
@@ -42,16 +42,16 @@ export function buildGrid(
   return { grid, cols, rows }
 }
 
-export function worldToGrid(x: number, y: number): { col: number; row: number } {
+export function worldToGrid(x: number, y: number, cellSize: number = GRID_CELL_SIZE): { col: number; row: number } {
   return {
-    col: Math.floor(x / GRID_CELL_SIZE),
-    row: Math.floor(y / GRID_CELL_SIZE),
+    col: Math.floor(x / cellSize),
+    row: Math.floor(y / cellSize),
   }
 }
 
-export function gridToWorld(row: number, col: number): { x: number; y: number } {
+export function gridToWorld(row: number, col: number, cellSize: number = GRID_CELL_SIZE): { x: number; y: number } {
   return {
-    x: col * GRID_CELL_SIZE + GRID_CELL_SIZE / 2,
-    y: row * GRID_CELL_SIZE + GRID_CELL_SIZE / 2,
+    x: col * cellSize + cellSize / 2,
+    y: row * cellSize + cellSize / 2,
   }
 }

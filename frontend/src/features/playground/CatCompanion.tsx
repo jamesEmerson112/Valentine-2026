@@ -5,9 +5,10 @@ import './CatCompanion.css'
 
 interface CatCompanionProps {
   spriteSpawnTrigger?: number
+  scale?: number
 }
 
-export default function CatCompanion({ spriteSpawnTrigger = 0 }: CatCompanionProps) {
+export default function CatCompanion({ spriteSpawnTrigger = 0, scale = 1 }: CatCompanionProps) {
   const [pos, setPos] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const [flipX, setFlipX] = useState(false)
   const [isIdle, setIsIdle] = useState(false)
@@ -15,6 +16,9 @@ export default function CatCompanion({ spriteSpawnTrigger = 0 }: CatCompanionPro
   const targetRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const posRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
   const idleTimerRef = useRef(0)
+
+  const catSize = 80 * scale
+  const catOffset = 40 * scale
 
   const handleMouseMove = useCallback((e: PointerEvent) => {
     targetRef.current = { x: e.clientX, y: e.clientY }
@@ -63,10 +67,10 @@ export default function CatCompanion({ spriteSpawnTrigger = 0 }: CatCompanionPro
     <div
       className={`cat-companion ${isIdle ? 'cat-idle' : ''} ${isExcited ? 'cat-excited' : ''}`}
       style={{
-        transform: `translate(${pos.x - 40}px, ${pos.y - 40}px) scaleX(${flipX ? -1 : 1})`,
+        transform: `translate(${pos.x - catOffset}px, ${pos.y - catOffset}px) scaleX(${flipX ? -1 : 1})`,
       }}
     >
-      <img src={catSvg} alt="" width={80} height={80} draggable={false} />
+      <img src={catSvg} alt="" width={catSize} height={catSize} draggable={false} />
     </div>
   )
 }

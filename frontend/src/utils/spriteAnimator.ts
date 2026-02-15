@@ -20,9 +20,9 @@ export function baseSpeed(behavior: Sprite['behavior']): number {
 /**
  * Update sprite position based on its behavior. Mutates sprite in place.
  */
-export function updateSprite(sprite: Sprite, dt: number, bounds: { width: number; height: number }) {
+export function updateSprite(sprite: Sprite, dt: number, bounds: { width: number; height: number }, scale: number = 1) {
   sprite.timer += dt
-  const spd = BASE_SPEED * sprite.speed
+  const spd = BASE_SPEED * sprite.speed * scale
 
   switch (sprite.behavior) {
     case 'wander':
@@ -126,14 +126,14 @@ export function randomBehavior(): Sprite['behavior'] {
 /**
  * Create initial velocity for a sprite based on behavior.
  */
-export function initialVelocity(behavior: Sprite['behavior']): { vx: number; vy: number } {
+export function initialVelocity(behavior: Sprite['behavior'], scale: number = 1): { vx: number; vy: number } {
   switch (behavior) {
     case 'bounce':
-      return { vx: (Math.random() > 0.5 ? 1 : -1) * BASE_SPEED, vy: (Math.random() > 0.5 ? 1 : -1) * BASE_SPEED }
+      return { vx: (Math.random() > 0.5 ? 1 : -1) * BASE_SPEED * scale, vy: (Math.random() > 0.5 ? 1 : -1) * BASE_SPEED * scale }
     case 'wander':
       return { vx: 0, vy: 0 }
     case 'float':
-      return { vx: 0, vy: -0.03 }
+      return { vx: 0, vy: -0.03 * scale }
     case 'dance':
       return { vx: 0, vy: 0 }
   }

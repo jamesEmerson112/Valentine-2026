@@ -11,15 +11,16 @@ import { isAgent } from './agentAI'
  * Draw a flower at its current bloom stage.
  * bloomProgress 0-1 maps to stages: seed(0), sprout(0.2), bud(0.4), blooming(0.6), full bloom(0.8+)
  */
-export function drawFlower(ctx: CanvasRenderingContext2D, flower: Flower, time: number) {
+export function drawFlower(ctx: CanvasRenderingContext2D, flower: Flower, time: number, scale: number = 1) {
   if (!flower.alive) return
 
   const { x, y, bloomProgress } = flower
   const stage = Math.min(4, Math.floor(bloomProgress * 5))
-  const sway = Math.sin(time * 0.001 + flower.id) * 3
+  const sway = Math.sin(time * 0.001 + flower.id) * 3 * scale
 
   ctx.save()
   ctx.translate(x + sway, y)
+  ctx.scale(scale, scale)
 
   switch (stage) {
     case 0: drawSeed(ctx); break
@@ -272,7 +273,7 @@ export function drawRat(ctx: CanvasRenderingContext2D, rat: Rat, time: number) {
 /**
  * Draw an obstacle (rock or bush).
  */
-export function drawObstacle(ctx: CanvasRenderingContext2D, obs: Obstacle, time: number) {
+export function drawObstacle(ctx: CanvasRenderingContext2D, obs: Obstacle, time: number, scale: number = 1) {
   ctx.save()
   const cx = obs.x + obs.width / 2
   const cy = obs.y + obs.height / 2
@@ -305,7 +306,7 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, obs: Obstacle, time:
     ctx.stroke()
   } else {
     // Bush — green blob with leaf clusters and slight sway
-    const sway = Math.sin(time * 0.0015 + obs.id * 1.7) * 2
+    const sway = Math.sin(time * 0.0015 + obs.id * 1.7) * 2 * scale
 
     // Shadow
     ctx.fillStyle = 'rgba(0,0,0,0.1)'
@@ -339,7 +340,7 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, obs: Obstacle, time:
       const lx = cx + Math.cos(angle) * obs.width * 0.18 + sway
       const ly = cy + Math.sin(angle) * obs.height * 0.12
       ctx.beginPath()
-      ctx.arc(lx, ly, 3, 0, Math.PI * 2)
+      ctx.arc(lx, ly, 3 * scale, 0, Math.PI * 2)
       ctx.fill()
     }
   }
@@ -353,16 +354,17 @@ export function drawObstacle(ctx: CanvasRenderingContext2D, obs: Obstacle, time:
 export function drawGardenBoundary(
   ctx: CanvasRenderingContext2D,
   cx: number, cy: number, w: number, h: number,
-  time: number
+  time: number,
+  scale: number = 1
 ) {
   const x = cx - w / 2
   const y = cy - h / 2
-  const r = 12
+  const r = 12 * scale
 
   ctx.save()
   ctx.strokeStyle = 'rgba(76, 175, 80, 0.3)'
-  ctx.lineWidth = 2
-  ctx.setLineDash([8, 6])
+  ctx.lineWidth = 2 * scale
+  ctx.setLineDash([8 * scale, 6 * scale])
   ctx.lineDashOffset = -time * 0.02
 
   ctx.beginPath()
@@ -389,6 +391,7 @@ export function drawNavGrid(
   grid: number[][] | null,
   gridRows: number,
   gridCols: number,
+  cellSize: number = GRID_CELL_SIZE,
 ) {
   if (!grid) return
   ctx.save()
@@ -398,7 +401,7 @@ export function drawNavGrid(
     for (let c = 0; c < gridCols; c++) {
       if (grid[r][c] === 1) {
         ctx.fillStyle = 'rgba(255, 60, 60, 0.15)'
-        ctx.fillRect(c * GRID_CELL_SIZE, r * GRID_CELL_SIZE, GRID_CELL_SIZE, GRID_CELL_SIZE)
+        ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize)
       }
     }
   }
@@ -407,17 +410,17 @@ export function drawNavGrid(
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)'
   ctx.lineWidth = 0.5
   for (let r = 0; r <= gridRows; r++) {
-    const y = r * GRID_CELL_SIZE
+    const y = r * cellSize
     ctx.beginPath()
     ctx.moveTo(0, y)
-    ctx.lineTo(gridCols * GRID_CELL_SIZE, y)
+    ctx.lineTo(gridCols * cellSize, y)
     ctx.stroke()
   }
   for (let c = 0; c <= gridCols; c++) {
-    const x = c * GRID_CELL_SIZE
+    const x = c * cellSize
     ctx.beginPath()
     ctx.moveTo(x, 0)
-    ctx.lineTo(x, gridRows * GRID_CELL_SIZE)
+    ctx.lineTo(x, gridRows * cellSize)
     ctx.stroke()
   }
 
@@ -430,6 +433,8 @@ export function drawAgentDebug(
   assignments: AgentAssignment[],
   rats: Rat[],
   time: number,
+  aggroRadius: number = AGENT_AGGRO_RADIUS,
+  catchDistance: number = AGENT_RAT_CATCH_DISTANCE,
 ) {
   ctx.save()
   for (const sprite of sprites) {
@@ -445,7 +450,7 @@ export function drawAgentDebug(
       if (rat && !rat.despawned) {
         const dx = acx - rat.x
         const dy = acy - rat.y
-        isSprinting = Math.sqrt(dx * dx + dy * dy) <= AGENT_AGGRO_RADIUS
+        isSprinting = Math.sqrt(dx * dx + dy * dy) <= aggroRadius
       }
     }
 
@@ -454,7 +459,7 @@ export function drawAgentDebug(
     ctx.lineWidth = 1.5
     ctx.setLineDash([6, 4])
     ctx.beginPath()
-    ctx.arc(acx, acy, AGENT_AGGRO_RADIUS, 0, Math.PI * 2)
+    ctx.arc(acx, acy, aggroRadius, 0, Math.PI * 2)
     ctx.stroke()
     ctx.setLineDash([])
 
@@ -463,7 +468,7 @@ export function drawAgentDebug(
     ctx.strokeStyle = `rgba(255, 160, 40, ${pulse})`
     ctx.lineWidth = 2
     ctx.beginPath()
-    ctx.arc(acx, acy, AGENT_RAT_CATCH_DISTANCE, 0, Math.PI * 2)
+    ctx.arc(acx, acy, catchDistance, 0, Math.PI * 2)
     ctx.stroke()
   }
   ctx.restore()

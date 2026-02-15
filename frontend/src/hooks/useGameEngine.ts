@@ -10,8 +10,11 @@ import {
   RAT_BASE_SPEED,
   RAT_SIZE,
   RAT_FLOWER_HIT_RADIUS,
+  RAT_KNOCKBACK_SPEED,
   WAVES,
+  getScaledConfig,
 } from '../utils/gameConfig'
+import type { ScaledConfig } from '../utils/gameConfig'
 import { generateObstacles } from '../utils/obstacleGenerator'
 import { buildGrid } from '../utils/grid'
 import { updateAgents, isAgent, resetAgentStates } from '../utils/agentAI'
@@ -29,7 +32,7 @@ function bloomStageIndex(progress: number): number {
   return 0
 }
 
-function createInitialState(): TDGameState {
+export function createInitialState(): TDGameState {
   return {
     phase: 'idle',
     elapsedTime: 0,
@@ -47,6 +50,8 @@ function createInitialState(): TDGameState {
     gridCols: 0,
     gridRows: 0,
     events: [],
+    playerCommands: [],
+    scaledConfig: null,
   }
 }
 
@@ -64,6 +69,10 @@ export function useGameEngine() {
   const startGame = useCallback((bounds: { width: number; height: number }) => {
     const state = stateRef.current
     const { cx, cy, w, h } = getGardenRect(bounds)
+
+    // Compute scaled config for this screen size
+    const sc = getScaledConfig(bounds)
+    state.scaledConfig = sc
 
     // Place flowers in a pentagon pattern within the garden
     const flowers: Flower[] = []
@@ -90,10 +99,17 @@ export function useGameEngine() {
     state.ratIdCounter = 0
     state.events = []
 
-    // Generate obstacles and navigation grid
-    state.obstacles = generateObstacles(bounds, { cx, cy, w, h }, flowers)
+    // Generate obstacles and navigation grid using scaled values
+    state.obstacles = generateObstacles(bounds, { cx, cy, w, h }, flowers, {
+      sizeMin: sc.obstacleSizeMin,
+      sizeMax: sc.obstacleSizeMax,
+      gardenClearance: sc.obstacleGardenClearance,
+      flowerClearance: sc.obstacleFlowerClearance,
+      margin: sc.obstacleMargin,
+      overlapPadding: sc.obstacleOverlapPadding,
+    })
     state.obstacleIdCounter = state.obstacles.length
-    const gridData = buildGrid(bounds, state.obstacles)
+    const gridData = buildGrid(bounds, state.obstacles, sc.gridCellSize, sc.inflation)
     state.grid = gridData.grid
     state.gridCols = gridData.cols
     state.gridRows = gridData.rows
@@ -121,10 +137,14 @@ export function useGameEngine() {
     const aliveFlowers = state.flowers.filter(f => f.alive)
     if (aliveFlowers.length === 0) return
 
+    const sc = state.scaledConfig
+    const ratSize = sc ? sc.ratSize : RAT_SIZE
+    const ratBaseSpeed = sc ? sc.ratBaseSpeed : RAT_BASE_SPEED
+
     const targetFlower = aliveFlowers[Math.floor(Math.random() * aliveFlowers.length)]
     let x: number, y: number
 
-    const margin = RAT_SIZE
+    const margin = ratSize
     switch (edge) {
       case 'left':
         x = -margin
@@ -147,7 +167,7 @@ export function useGameEngine() {
     const dx = targetFlower.x - x
     const dy = targetFlower.y - y
     const dist = Math.sqrt(dx * dx + dy * dy) || 1
-    const actualSpeed = RAT_BASE_SPEED * speed
+    const actualSpeed = ratBaseSpeed * speed
 
     state.rats.push({
       id: state.ratIdCounter++,
@@ -160,7 +180,7 @@ export function useGameEngine() {
       knockbackTimer: 0,
       knockbackVx: 0,
       knockbackVy: 0,
-      size: RAT_SIZE,
+      size: ratSize,
       opacity: 1,
       despawned: false,
     })
@@ -175,6 +195,10 @@ export function useGameEngine() {
   ) => {
     const state = stateRef.current
     if (state.phase !== 'playing') return
+
+    const sc = state.scaledConfig
+    const ratFlowerHitRadius = sc ? sc.ratFlowerHitRadius : RAT_FLOWER_HIT_RADIUS
+    const ratSize = sc ? sc.ratSize : RAT_SIZE
 
     const timeScale = state.debugMode ? TIME_SCALE_DEBUG : 1
     const gameTimeDt = rawDt * timeScale
@@ -286,6 +310,15 @@ export function useGameEngine() {
     const agentSprites = sprites.filter(s => isAgent(s))
     if (agentSprites.length > 0) {
       const { cx: gcx, cy: gcy } = getGardenRect(bounds)
+      const agentConfig = sc ? {
+        agentSpeed: sc.agentSpeed,
+        agentSprintSpeed: sc.agentSprintSpeed,
+        agentAggroRadius: sc.agentAggroRadius,
+        agentSprintRadius: sc.agentSprintRadius,
+        agentRatCatchDistance: sc.agentRatCatchDistance,
+        agentRepathThreshold: sc.agentRepathThreshold,
+        cellSize: sc.gridCellSize,
+      } : undefined
       const agentEvents = updateAgents(
         physicsDt,
         agentSprites,
@@ -295,6 +328,8 @@ export function useGameEngine() {
         state.gridRows,
         state.gridCols,
         { x: gcx, y: gcy },
+        state.playerCommands,
+        agentConfig,
       )
       state.events.push(...agentEvents)
     }
@@ -309,7 +344,7 @@ export function useGameEngine() {
         const dy = rat.y - flower.y
         const dist = Math.sqrt(dx * dx + dy * dy)
 
-        if (dist < RAT_FLOWER_HIT_RADIUS) {
+        if (dist < ratFlowerHitRadius) {
           flower.bloomProgress -= BLOOM_STAGE_DECREMENT
           if (flower.bloomProgress <= 0) {
             flower.bloomProgress = 0
@@ -325,7 +360,7 @@ export function useGameEngine() {
     }
 
     // 10. Clean up despawned / off-screen rats
-    const margin = RAT_SIZE * 3
+    const margin = ratSize * 3
     state.rats = state.rats.filter(rat => {
       if (rat.despawned) return false
       if (rat.x < -margin || rat.x > bounds.width + margin ||
@@ -353,7 +388,13 @@ export function useGameEngine() {
     return false
   }, [])
 
-  return { stateRef, startGame, update, resetGame, getGardenRect, handleTapRat }
+  const directAgentTo = useCallback((spriteId: string, destX: number, destY: number) => {
+    const state = stateRef.current
+    if (state.phase !== 'playing') return
+    state.playerCommands.push({ type: 'move_to', spriteId, destX, destY })
+  }, [])
+
+  return { stateRef, startGame, update, resetGame, getGardenRect, handleTapRat, directAgentTo }
 }
 
 function retargetRat(rat: Rat, state: TDGameState) {

@@ -9,6 +9,7 @@ import { drawHeart } from '../../utils/canvasHelpers'
 import { processImageFile } from '../../utils/imageUpload'
 import { soundEngine } from '../../utils/soundEngine'
 import { particles, emitRatCaughtParticles, emitBloomParticles, emitVictoryParticles } from '../../utils/particleSystem'
+import { getGameScale } from '../../utils/gameConfig'
 import { SpritesContext } from '../../App'
 import DrawingCanvas from './DrawingCanvas'
 import CatCompanion from './CatCompanion'
@@ -17,6 +18,34 @@ import './PlaygroundPage.css'
 
 const MAX_SPRITES = 15
 const STORAGE_KEY = 'valentine2026_sprites'
+const DRAG_THRESHOLD = 20 // px minimum drag distance
+const AGENT_SIZE_FACTOR = 0.8 // agents render 20% smaller than raw sprite size
+
+interface DragState {
+  spriteId: string
+  startX: number
+  startY: number
+  currentX: number
+  currentY: number
+  agentCenterX: number
+  agentCenterY: number
+}
+
+function hitTestAgent(x: number, y: number, sprites: Sprite[], scale: number = 1): Sprite | null {
+  // Iterate in reverse for topmost-drawn
+  for (let i = sprites.length - 1; i >= 0; i--) {
+    const s = sprites[i]
+    if (s.role !== 'agent') continue
+    const drawW = s.width * scale * AGENT_SIZE_FACTOR
+    const drawH = s.height * scale * AGENT_SIZE_FACTOR
+    const drawX = s.x + s.width / 2 - drawW / 2
+    const drawY = s.y + s.height / 2 - drawH / 2
+    if (x >= drawX && x <= drawX + drawW && y >= drawY && y <= drawY + drawH) {
+      return s
+    }
+  }
+  return null
+}
 
 interface HudState {
   phase: TDGamePhase
@@ -40,6 +69,8 @@ export default function PlaygroundPage() {
   const spritesRef = useRef<Sprite[]>(sprites)
   const imagesRef = useRef<Map<string, HTMLImageElement>>(new Map())
   const hudUpdateTimerRef = useRef(0)
+  const dragRef = useRef<DragState | null>(null)
+  const hoveredAgentRef = useRef<string | null>(null)
   const size = useWindowSize()
   const game = useGameEngine()
 
@@ -64,8 +95,9 @@ export default function PlaygroundPage() {
       spritesRef.current = spritesRef.current.slice(1)
     }
 
+    const scale = getGameScale({ width: size.width, height: size.height })
     const behavior = randomBehavior()
-    const vel = initialVelocity(behavior)
+    const vel = initialVelocity(behavior, scale)
     const newSprite: Sprite = {
       id: `sprite-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       imageData: dataUrl,
@@ -147,12 +179,63 @@ export default function PlaygroundPage() {
     setIsMuted(muted)
   }, [])
 
-  const handlePageClick = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if (game.stateRef.current.phase !== 'playing') return
-    const x = 'touches' in e ? e.touches[0].clientX : e.clientX
-    const y = 'touches' in e ? e.touches[0].clientY : e.clientY
-    game.handleTapRat(x, y)
-  }, [game])
+    const x = e.clientX
+    const y = e.clientY
+
+    const scale = getGameScale({ width: size.width, height: size.height })
+    const agent = hitTestAgent(x, y, spritesRef.current, scale)
+    if (agent) {
+      dragRef.current = {
+        spriteId: agent.id,
+        startX: x,
+        startY: y,
+        currentX: x,
+        currentY: y,
+        agentCenterX: agent.x + agent.width / 2,
+        agentCenterY: agent.y + agent.height / 2,
+      }
+      ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+      document.body.style.cursor = 'grabbing'
+    } else {
+      // No agent hit — try rat tap
+      game.handleTapRat(x, y)
+    }
+  }, [game, size])
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (dragRef.current) {
+      dragRef.current.currentX = e.clientX
+      dragRef.current.currentY = e.clientY
+      // Update agent center for live tracking
+      const agent = spritesRef.current.find(s => s.id === dragRef.current!.spriteId)
+      if (agent) {
+        dragRef.current.agentCenterX = agent.x + agent.width / 2
+        dragRef.current.agentCenterY = agent.y + agent.height / 2
+      }
+    } else if (game.stateRef.current.phase === 'playing') {
+      const scale = getGameScale({ width: size.width, height: size.height })
+      const agent = hitTestAgent(e.clientX, e.clientY, spritesRef.current, scale)
+      hoveredAgentRef.current = agent ? agent.id : null
+    }
+  }, [game, size])
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    const drag = dragRef.current
+    if (!drag) return
+    dragRef.current = null
+    document.body.style.cursor = ''
+    hoveredAgentRef.current = null
+
+    const dx = e.clientX - drag.startX
+    const dy = e.clientY - drag.startY
+    const dist = Math.sqrt(dx * dx + dy * dy)
+    const scale = getGameScale({ width: size.width, height: size.height })
+    if (dist < DRAG_THRESHOLD * scale) return // short tap — do nothing
+
+    game.directAgentTo(drag.spriteId, e.clientX, e.clientY)
+  }, [game, size])
 
   // Format mm:ss timer
   const formatTime = (ms: number) => {
@@ -174,6 +257,7 @@ export default function PlaygroundPage() {
     const bounds = { width: size.width, height: size.height }
     const currentSprites = spritesRef.current
     const state = game.stateRef.current
+    const scale = getGameScale(bounds)
 
     // Update game engine
     if (state.phase === 'playing') {
@@ -188,19 +272,19 @@ export default function PlaygroundPage() {
       switch (event.type) {
         case 'rat_caught':
           soundEngine.playRatCaught()
-          if (event.x != null && event.y != null) emitRatCaughtParticles(event.x, event.y)
+          if (event.x != null && event.y != null) emitRatCaughtParticles(event.x, event.y, scale)
           break
         case 'rat_spawned':
           soundEngine.playRatSpawn()
           break
         case 'bloom_stage':
           if (event.stage != null) soundEngine.playBloomStage(event.stage)
-          if (event.x != null && event.y != null && event.stage != null) emitBloomParticles(event.x, event.y, event.stage)
+          if (event.x != null && event.y != null && event.stage != null) emitBloomParticles(event.x, event.y, event.stage, scale)
           break
         case 'victory':
           soundEngine.playVictory()
           soundEngine.stopMusic()
-          emitVictoryParticles(bounds.width, bounds.height)
+          emitVictoryParticles(bounds.width, bounds.height, scale)
           break
         case 'defeat':
           soundEngine.playDefeat()
@@ -215,16 +299,16 @@ export default function PlaygroundPage() {
     // Draw garden boundary (idle + playing)
     if (state.phase === 'idle' || state.phase === 'playing') {
       const { cx, cy, w, h } = game.getGardenRect(bounds)
-      drawGardenBoundary(ctx, cx, cy, w, h, time)
+      drawGardenBoundary(ctx, cx, cy, w, h, time, scale)
 
       // Draw obstacles
       for (const obs of state.obstacles) {
-        drawObstacle(ctx, obs, time)
+        drawObstacle(ctx, obs, time, scale)
       }
 
       // Draw flowers
       for (const flower of state.flowers) {
-        drawFlower(ctx, flower, time)
+        drawFlower(ctx, flower, time, scale)
       }
 
       // Draw rats
@@ -232,22 +316,39 @@ export default function PlaygroundPage() {
         drawRat(ctx, rat, time)
       }
 
-      // Draw assignment lines (subtle dashed pink lines from agent to target rat)
+      // Draw assignment lines
       if (state.phase === 'playing') {
         ctx.save()
-        ctx.strokeStyle = 'rgba(255, 107, 129, 0.3)'
-        ctx.lineWidth = 1.5
-        ctx.setLineDash([6, 4])
+        ctx.lineWidth = 1.5 * scale
+        ctx.setLineDash([6 * scale, 4 * scale])
         for (const assignment of state.agentAssignments) {
           const agent = currentSprites.find(s => s.id === assignment.spriteId)
-          const rat = state.rats.find(r => r.id === assignment.targetRatId)
-          if (!agent || !rat || rat.despawned) continue
+          if (!agent) continue
           const acx = agent.x + agent.width / 2
           const acy = agent.y + agent.height / 2
-          ctx.beginPath()
-          ctx.moveTo(acx, acy)
-          ctx.lineTo(rat.x, rat.y)
-          ctx.stroke()
+
+          if (assignment.isPlayerDirected && assignment.destination) {
+            // Blue dashed line to destination
+            ctx.strokeStyle = 'rgba(100, 149, 237, 0.45)'
+            ctx.beginPath()
+            ctx.moveTo(acx, acy)
+            ctx.lineTo(assignment.destination.x, assignment.destination.y)
+            ctx.stroke()
+            // Small dot at destination
+            ctx.fillStyle = 'rgba(100, 149, 237, 0.6)'
+            ctx.beginPath()
+            ctx.arc(assignment.destination.x, assignment.destination.y, 4 * scale, 0, Math.PI * 2)
+            ctx.fill()
+          } else {
+            // Pink dashed line to target rat
+            const rat = state.rats.find(r => r.id === assignment.targetRatId)
+            if (!rat || rat.despawned) continue
+            ctx.strokeStyle = 'rgba(255, 107, 129, 0.3)'
+            ctx.beginPath()
+            ctx.moveTo(acx, acy)
+            ctx.lineTo(rat.x, rat.y)
+            ctx.stroke()
+          }
         }
         ctx.setLineDash([])
         ctx.restore()
@@ -255,8 +356,12 @@ export default function PlaygroundPage() {
 
       // Debug overlays
       if (state.debugMode) {
-        drawNavGrid(ctx, state.grid, state.gridRows, state.gridCols)
-        drawAgentDebug(ctx, currentSprites, state.agentAssignments, state.rats, time)
+        const sc = state.scaledConfig
+        const cellSize = sc ? sc.gridCellSize : undefined
+        const aggroRadius = sc ? sc.agentAggroRadius : undefined
+        const catchDistance = sc ? sc.agentRatCatchDistance : undefined
+        drawNavGrid(ctx, state.grid, state.gridRows, state.gridCols, cellSize)
+        drawAgentDebug(ctx, currentSprites, state.agentAssignments, state.rats, time, aggroRadius, catchDistance)
         drawAgentPaths(ctx, currentSprites, state.agentAssignments)
         const agentCount = currentSprites.filter(s => s.role === 'agent').length
         const ratCount = state.rats.filter(r => !r.despawned).length
@@ -271,7 +376,7 @@ export default function PlaygroundPage() {
         isAgent(sprite) &&
         state.agentAssignments.some(a => a.spriteId === sprite.id)
       if (!hasAssignment) {
-        updateSprite(sprite, dt, bounds)
+        updateSprite(sprite, dt, bounds, scale)
       }
 
       const img = ensureImage(sprite)
@@ -283,8 +388,85 @@ export default function PlaygroundPage() {
       ctx.translate(cx, cy)
       ctx.rotate(Math.sin(sprite.rotation) * 0.15)
       if (sprite.flipX) ctx.scale(-1, 1)
-      ctx.drawImage(img, -sprite.width / 2, -sprite.height / 2, sprite.width, sprite.height)
+      const sizeFactor = isAgent(sprite) ? AGENT_SIZE_FACTOR : 1
+      const drawW = sprite.width * scale * sizeFactor
+      const drawH = sprite.height * scale * sizeFactor
+      ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH)
       ctx.restore()
+    }
+
+    // Visual feedback: hover glow + drag indicator
+    if (state.phase === 'playing') {
+      // Hover glow ring
+      const hovId = hoveredAgentRef.current
+      if (hovId && !dragRef.current) {
+        const hSprite = currentSprites.find(s => s.id === hovId)
+        if (hSprite) {
+          const hcx = hSprite.x + hSprite.width / 2
+          const hcy = hSprite.y + hSprite.height / 2
+          const r = Math.max(hSprite.width, hSprite.height) * 0.6 * scale * AGENT_SIZE_FACTOR
+          ctx.save()
+          ctx.strokeStyle = 'rgba(100, 149, 237, 0.35)'
+          ctx.lineWidth = 2 * scale
+          ctx.shadowColor = 'rgba(100, 149, 237, 0.5)'
+          ctx.shadowBlur = 10 * scale
+          ctx.beginPath()
+          ctx.arc(hcx, hcy, r, 0, Math.PI * 2)
+          ctx.stroke()
+          ctx.restore()
+        }
+      }
+
+      // Drag indicator
+      const drag = dragRef.current
+      if (drag) {
+        const dSprite = currentSprites.find(s => s.id === drag.spriteId)
+        if (dSprite) {
+          const dcx = dSprite.x + dSprite.width / 2
+          const dcy = dSprite.y + dSprite.height / 2
+
+          ctx.save()
+          // Glow ring around selected agent
+          const r = Math.max(dSprite.width, dSprite.height) * 0.6 * scale * AGENT_SIZE_FACTOR
+          ctx.strokeStyle = 'rgba(100, 149, 237, 0.5)'
+          ctx.lineWidth = 2.5 * scale
+          ctx.shadowColor = 'rgba(100, 149, 237, 0.6)'
+          ctx.shadowBlur = 14 * scale
+          ctx.beginPath()
+          ctx.arc(dcx, dcy, r, 0, Math.PI * 2)
+          ctx.stroke()
+          ctx.shadowBlur = 0
+
+          // Dashed blue line from agent to cursor
+          ctx.strokeStyle = 'rgba(100, 149, 237, 0.5)'
+          ctx.lineWidth = 2 * scale
+          ctx.setLineDash([8 * scale, 5 * scale])
+          ctx.beginPath()
+          ctx.moveTo(dcx, dcy)
+          ctx.lineTo(drag.currentX, drag.currentY)
+          ctx.stroke()
+          ctx.setLineDash([])
+
+          // Pulsing circle + crosshair at cursor
+          const pulse = 0.7 + 0.3 * Math.sin(time * 0.005)
+          ctx.globalAlpha = pulse
+          ctx.strokeStyle = 'rgba(100, 149, 237, 0.7)'
+          ctx.lineWidth = 2 * scale
+          ctx.beginPath()
+          ctx.arc(drag.currentX, drag.currentY, 12 * scale, 0, Math.PI * 2)
+          ctx.stroke()
+          // Crosshair
+          const ch = 6 * scale
+          ctx.beginPath()
+          ctx.moveTo(drag.currentX - ch, drag.currentY)
+          ctx.lineTo(drag.currentX + ch, drag.currentY)
+          ctx.moveTo(drag.currentX, drag.currentY - ch)
+          ctx.lineTo(drag.currentX, drag.currentY + ch)
+          ctx.stroke()
+          ctx.globalAlpha = 1
+          ctx.restore()
+        }
+      }
     }
 
     // Render particles (after sprites, before HUD)
@@ -305,7 +487,7 @@ export default function PlaygroundPage() {
   })
 
   return (
-    <div className="playground-page" onClick={handlePageClick}>
+    <div className="playground-page" onPointerDown={handlePointerDown} onPointerMove={handlePointerMove} onPointerUp={handlePointerUp}>
       <canvas
         ref={canvasRef}
         className="playground-canvas"
@@ -341,7 +523,7 @@ export default function PlaygroundPage() {
               </div>
             ))}
           </div>
-          <button className="mute-btn" onClick={handleToggleMute} title={isMuted ? 'Unmute' : 'Mute'}>
+          <button className="mute-btn" onClick={(e) => { e.stopPropagation(); handleToggleMute() }} onPointerDown={(e) => e.stopPropagation()} title={isMuted ? 'Unmute' : 'Mute'}>
             {isMuted ? (
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
@@ -465,7 +647,7 @@ export default function PlaygroundPage() {
         </div>
       )}
 
-      <CatCompanion spriteSpawnTrigger={spawnTrigger} />
+      <CatCompanion spriteSpawnTrigger={spawnTrigger} scale={getGameScale({ width: size.width, height: size.height })} />
 
       {sprites.length === 0 && !showDrawing && hudState.phase === 'idle' && (
         <div className="playground-hint">

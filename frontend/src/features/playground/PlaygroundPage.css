@@ -2,6 +2,7 @@
   position: relative;
   width: 100%;
   min-height: 100vh;
+  touch-action: none;
 }
 
 .playground-canvas {
@@ -405,6 +406,11 @@
   .game-hud {
     top: 12px;
     left: 12px;
+  }
+
+  .mute-btn {
+    width: 44px;
+    height: 44px;
   }
 
   .game-timer {

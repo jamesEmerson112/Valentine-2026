@@ -1,5 +1,6 @@
 import { MinHeap } from './minHeap'
 import { worldToGrid, gridToWorld } from './grid'
+import { GRID_CELL_SIZE } from './gameConfig'
 
 const SQRT2 = Math.SQRT2
 
@@ -36,9 +37,10 @@ export function findPath(
   startY: number,
   goalX: number,
   goalY: number,
+  cellSize: number = GRID_CELL_SIZE,
 ): { x: number; y: number }[] {
-  const start = worldToGrid(startX, startY)
-  let goal = worldToGrid(goalX, goalY)
+  const start = worldToGrid(startX, startY, cellSize)
+  let goal = worldToGrid(goalX, goalY, cellSize)
 
   // Clamp to grid bounds
   start.col = Math.max(0, Math.min(cols - 1, start.col))
@@ -62,7 +64,7 @@ export function findPath(
 
   // Early out: already at goal
   if (start.row === goal.row && start.col === goal.col) {
-    const w = gridToWorld(goal.row, goal.col)
+    const w = gridToWorld(goal.row, goal.col, cellSize)
     return [w]
   }
 
@@ -113,7 +115,7 @@ export function findPath(
   while (cur !== startKey && cur !== -1) {
     const r = Math.floor(cur / cols)
     const c = cur % cols
-    path.push(gridToWorld(r, c))
+    path.push(gridToWorld(r, c, cellSize))
     cur = cameFrom[cur]
   }
   path.reverse()
