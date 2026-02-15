@@ -1,7 +1,7 @@
 import type { WaveConfig, SpawnEdge } from '../types'
 
 // Durations
-export const GAME_DURATION_MS = 300_000 // 5 minutes
+export const GAME_DURATION_MS = 60_000 // 1 minute
 export const TIME_SCALE_DEBUG = 10
 
 // Flowers
