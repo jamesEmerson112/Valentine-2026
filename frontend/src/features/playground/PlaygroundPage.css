@@ -337,6 +337,15 @@
   font-size: 1.05rem;
   line-height: 1.6;
   color: var(--pink-dark);
+  margin: 0 0 16px;
+  position: relative;
+}
+
+.valentine-card-from {
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  font-style: italic;
+  color: var(--pink-deep);
   margin: 0 0 28px;
   position: relative;
 }

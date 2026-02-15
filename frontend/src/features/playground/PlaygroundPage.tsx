@@ -615,11 +615,12 @@ export default function PlaygroundPage() {
         <div className="drawing-overlay">
           <div className="valentine-card">
             <ValentineCardDecoration />
-            <h1 className="valentine-card-title">Happy Valentine&apos;s Day!</h1>
+            <h1 className="valentine-card-title">Happy Valentine, baby Jen.</h1>
             <p className="valentine-card-message">
               Your garden bloomed beautifully.<br />
               Love conquers all &mdash; even rats.
             </p>
+            <p className="valentine-card-from">From James</p>
             <button className="draw-action-btn primary" onClick={handlePlayAgain}>
               Play Again
             </button>
