@@ -9,7 +9,16 @@ backend/Cargo.lock  # Remove this line if backend becomes a library
 #######################
 # Node / NPM / Frontend
 #######################
-frontend/node_modules/
+# Root level node dependencies (can occur with workspaces/monorepo tools)
+node_modules/
+.pnpm-store/
+.yarn/
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# Frontend build artifacts
 frontend/dist/
 frontend/dist-ssr/
 frontend/.vite/
@@ -23,10 +32,15 @@ frontend/build/
 frontend/coverage/
 frontend/.nyc_output/
 frontend/.jest/
+**/coverage/
+**/.nyc_output/
+**/.vitest/
 
-# TypeScript
+# TypeScript build info
 frontend/*.tsbuildinfo
 frontend/.tsbuildinfo
+*.tsbuildinfo
+.tsbuildinfo
 
 # Logs
 *.log
