@@ -541,11 +541,19 @@ export default function PlaygroundPage() {
         </div>
       )}
 
-      {/* Start button — visible when idle */}
+      {/* Start button + instructions — visible when idle */}
       {hudState.phase === 'idle' && (
-        <button className="playground-start-btn" onClick={handleStartGame}>
-          Defend the Garden!
-        </button>
+        <>
+          <button className="playground-start-btn" onClick={handleStartGame}>
+            Defend the Garden!
+          </button>
+          <div className="playground-instructions">
+            <p>Draw or upload creatures to defend your flowers</p>
+            <p>Tap rats to scare them away</p>
+            <p>Drag your defenders to direct them</p>
+            <p>Protect the garden until all flowers bloom!</p>
+          </div>
+        </>
       )}
 
       <div className="playground-ui">

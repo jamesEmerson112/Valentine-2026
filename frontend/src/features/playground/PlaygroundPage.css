@@ -302,6 +302,27 @@
   50% { box-shadow: 0 4px 32px rgba(76, 175, 80, 0.6); }
 }
 
+/* Game instructions (idle screen) */
+.playground-instructions {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.playground-instructions p {
+  font-family: 'Georgia', serif;
+  font-size: 0.9rem;
+  color: var(--pink-dark);
+  opacity: 0.7;
+  margin: 0;
+}
+
 /* Valentine victory card */
 .valentine-card {
   position: relative;
@@ -433,6 +454,14 @@
     font-size: 1.05rem;
     min-height: 44px;
     bottom: 80px;
+  }
+
+  .playground-instructions {
+    bottom: 20px;
+  }
+
+  .playground-instructions p {
+    font-size: 0.8rem;
   }
 
   .valentine-card {
