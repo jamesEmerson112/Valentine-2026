@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react'
-import type { TDGameState, Flower, Rat, SpawnEdge, Sprite, GameEvent } from '../types'
+import type { TDGameState, Flower, Rat, SpawnEdge, Sprite } from '../types'
 import {
   GAME_DURATION_MS,
   TIME_SCALE_DEBUG,
@@ -10,11 +10,9 @@ import {
   RAT_BASE_SPEED,
   RAT_SIZE,
   RAT_FLOWER_HIT_RADIUS,
-  RAT_KNOCKBACK_SPEED,
   WAVES,
   getScaledConfig,
 } from '../utils/gameConfig'
-import type { ScaledConfig } from '../utils/gameConfig'
 import { generateObstacles } from '../utils/obstacleGenerator'
 import { buildGrid } from '../utils/grid'
 import { updateAgents, isAgent, resetAgentStates } from '../utils/agentAI'

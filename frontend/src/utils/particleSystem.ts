@@ -153,7 +153,7 @@ export function emitBloomParticles(x: number, y: number, stage: number, scale: n
   })
 }
 
-export function emitVictoryParticles(width: number, height: number, scale: number = 1) {
+export function emitVictoryParticles(width: number, _height: number, scale: number = 1) {
   const shapes: Particle['shape'][] = ['heart', 'circle', 'star']
   particles.burst(80, () => {
     return {
